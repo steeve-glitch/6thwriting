@@ -86,7 +86,7 @@ const LandingPage = ({ onStart }) => {
                         transition={{ delay: 0.3 }}
                         className="text-3xl font-bold text-slate-800 tracking-tight"
                     >
-                        Hello St Johns student.
+                        Hello
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0 }}
