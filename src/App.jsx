@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import NumberTheStarsModule from './components/activity/NumberTheStarsModule';
 import BugMuldoonModule from './components/activity/BugMuldoonModule';
 import SticksAndStonesModule from './components/activity/SticksAndStonesModule';
+const LibrarySearch = React.lazy(() => import('./components/LibrarySearch'));
 
 function App() {
   const [user, setUser] = useState({ name: '' });
@@ -26,11 +27,11 @@ function App() {
   const renderActivity = () => {
     switch (view) {
       case 'activity:number-the-stars':
-        return <NumberTheStarsModule onBack={handleBackToDashboard} />;
+        return <NumberTheStarsModule onBack={handleBackToDashboard} userName={user.name} />;
       case 'activity:bug-muldoon':
-        return <BugMuldoonModule onBack={handleBackToDashboard} />;
-      case 'activity:sticks-stones':
-        return <SticksAndStonesModule onBack={handleBackToDashboard} />;
+        return <BugMuldoonModule onBack={handleBackToDashboard} userName={user.name} />;
+      case 'activity:sticks-and-stones':
+        return <SticksAndStonesModule onBack={handleBackToDashboard} userName={user.name} />;
       default:
         return null;
     }
@@ -41,7 +42,17 @@ function App() {
       {view === 'landing' && <LandingPage onStart={handleStart} />}
 
       {view === 'dashboard' && (
-        <Dashboard user={user} onSelectBook={handleSelectBook} />
+        <Dashboard
+          user={user}
+          onSelectBook={handleSelectBook}
+          onOpenLibrary={() => setView('library-search')}
+        />
+      )}
+
+      {view === 'library-search' && (
+        <React.Suspense fallback={<div className="p-8 text-center">Loading Library...</div>}>
+          <LibrarySearch onBack={handleBackToDashboard} />
+        </React.Suspense>
       )}
 
       {view.startsWith('activity:') && renderActivity()}

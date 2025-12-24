@@ -42,7 +42,7 @@ const BookCard = ({ title, author, theme, icon: Icon, color, onClick, delay }) =
     </motion.button>
 );
 
-const Dashboard = ({ user, onSelectBook }) => {
+const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
     const books = [
         {
             id: 'number-the-stars',
@@ -116,6 +116,39 @@ const Dashboard = ({ user, onSelectBook }) => {
                             onClick={() => onSelectBook && onSelectBook(book.id)}
                         />
                     ))}
+
+                    {/* Library Search Card */}
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6, duration: 0.5 }}
+                        whileHover={{ y: -8, scale: 1.02 }}
+                        onClick={onOpenLibrary}
+                        className="relative group w-full text-left overflow-hidden rounded-3xl p-1 bg-gradient-to-br from-slate-200 to-slate-300 shadow-xl hover:shadow-2xl transition-all duration-300"
+                    >
+                        <div className="absolute top-0 right-0 p-32 bg-white/30 rounded-full blur-3xl transform translate-x-12 -translate-y-12"></div>
+                        <div className="relative h-full bg-white/95 backdrop-blur-sm rounded-[22px] p-6 lg:p-8 flex flex-col justify-between overflow-hidden">
+                            <BookOpen className="absolute -bottom-4 -right-4 w-40 h-40 opacity-[0.05] text-slate-800" />
+                            <div className="space-y-4">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shadow-sm">
+                                    <BookOpen className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-slate-800 leading-tight group-hover:text-brand-600 transition-colors">
+                                        Library Search
+                                    </h3>
+                                    <p className="text-slate-500 font-medium mt-1">Full Text Search</p>
+                                </div>
+                                <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">
+                                    Search across all novels to find quotes, characters, and themes. Use this tool to extract text for your writing analysis.
+                                </p>
+                            </div>
+                            <div className="mt-8 flex items-center gap-2 font-semibold text-slate-800 group-hover:gap-3 transition-all">
+                                Search Books
+                                <ArrowRight className="w-5 h-5 text-slate-500" />
+                            </div>
+                        </div>
+                    </motion.button>
                 </div>
             </div>
         </div>

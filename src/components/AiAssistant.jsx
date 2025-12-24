@@ -4,12 +4,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { chatWithGemini } from '../services/gemini';
 
 const AiAssistant = ({ context, isOpen, onToggle }) => {
+    const studentName = context?.studentName || "";
+
+    const getGreeting = (name) => name
+        ? `Hi ${name}! I'm your reading companion. I can help you find evidence or improve your sentences. How can I help you today?`
+        : "Hi! I'm your reading companion. I can help you find evidence or improve your sentences. How can I help you today?";
+
     const [messages, setMessages] = useState([
-        { role: 'assistant', text: "Hi! I'm your reading companion. I can help you find evidence or improve your sentences. How can I help you today?" }
+        { role: 'assistant', text: getGreeting(studentName) }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Update greeting when student name becomes available
+    useEffect(() => {
+        if (studentName && messages.length === 1 && !messages[0].text.includes(studentName)) {
+            setMessages([{ role: 'assistant', text: getGreeting(studentName) }]);
+        }
+    }, [studentName]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

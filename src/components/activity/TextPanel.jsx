@@ -1,6 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { User, MapPin, Sparkles, Lightbulb, Swords } from 'lucide-react';
 
-const TextPanel = ({ title, content, chapter, highlights = [], onHighlight }) => {
+const CATEGORY_ICONS = {
+    character: User,
+    setting: MapPin,
+    figurative: Sparkles,
+    theme: Lightbulb,
+    conflict: Swords
+};
+
+const CATEGORY_LABELS = {
+    character: 'Character',
+    setting: 'Setting',
+    figurative: 'Figurative Language',
+    theme: 'Theme',
+    conflict: 'Conflict'
+};
+
+const TextPanel = ({ title, content, chapter, highlights = [], onHighlight, onHighlightClick }) => {
+    const [hoveredHighlight, setHoveredHighlight] = useState(null);
 
     const handleMouseUp = () => {
         const selection = window.getSelection();
@@ -26,18 +44,30 @@ const TextPanel = ({ title, content, chapter, highlights = [], onHighlight }) =>
 
             // Very basic simple string matching for highlights (MVP)
             if (highlights.length > 0) {
-                highlights.forEach(h => {
+                highlights.forEach((h, hIdx) => {
                     const newChildren = [];
+                    const Icon = CATEGORY_ICONS[h.category] || User;
+
                     children.forEach(child => {
                         if (typeof child === 'string') {
                             // case insensitive split for better UX
-                            const regex = new RegExp(`(${h.text})`, 'gi');
+                            const regex = new RegExp(`(${h.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
                             const parts = child.split(regex);
                             parts.forEach((part, i) => {
                                 if (part.toLowerCase() === h.text.toLowerCase()) {
                                     newChildren.push(
-                                        <span key={`${pIdx}-${h.text}-${i}`} className={`bg-${h.color}-200 border-b-2 border-${h.color}-400 rounded-sm px-1 cursor-pointer hover:bg-${h.color}-300 transition-colors`}>
+                                        <span
+                                            key={`${pIdx}-${hIdx}-${i}`}
+                                            className={`relative bg-${h.color}-200 border-b-2 border-${h.color}-400 rounded-sm px-1 cursor-pointer hover:bg-${h.color}-300 transition-colors`}
+                                            onMouseEnter={() => setHoveredHighlight(h)}
+                                            onMouseLeave={() => setHoveredHighlight(null)}
+                                            onClick={() => onHighlightClick && onHighlightClick(h)}
+                                        >
                                             {part}
+                                            {/* Category indicator dot */}
+                                            {h.category && (
+                                                <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full bg-${h.color}-500`} />
+                                            )}
                                         </span>
                                     );
                                 } else if (part) {
