@@ -9,6 +9,7 @@
 
   --animate-blob: blob 7s infinite;
   --animate-shimmer: shimmer 2s infinite;
+  --animate-text-flow: text-flow 5s ease infinite;
 
   @keyframes blob {
     0% {
@@ -31,6 +32,18 @@
   @keyframes shimmer {
     100% {
       transform: translateX(100%);
+    }
+  }
+
+  @keyframes text-flow {
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
     }
   }
 }

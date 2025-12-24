@@ -7,10 +7,12 @@ const LandingPage = ({ onStart }) => {
     const [name, setName] = useState('');
     const [isExploding, setIsExploding] = useState(false);
 
-    // A kaleidoscope of colors for the explosion
-    const kaleidoscopeColors = [
-        'bg-red-500', 'bg-orange-500', 'bg-yellow-500',
-        'bg-green-500', 'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500'
+    // Colors matching the 'Hello' gradient for the ripple effect
+    const rippleColors = [
+        'bg-blue-600',
+        'bg-purple-600',
+        'bg-pink-500',
+        'bg-orange-500'
     ];
 
     const handleSubmit = (e) => {
@@ -19,45 +21,37 @@ const LandingPage = ({ onStart }) => {
             setIsExploding(true);
             setTimeout(() => {
                 onStart(name.trim());
-            }, 1200);
+            }, 1500);
         }
     };
 
     return (
         <div className="relative flex items-center justify-center min-h-screen overflow-hidden bg-white text-slate-900 font-sans">
 
-            {/* Dynamic Kaleidoscopic Explosion */}
+            {/* Ripple Effect Transition */}
             <AnimatePresence>
                 {isExploding && (
                     <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-                        {kaleidoscopeColors.map((color, i) => (
+                        {rippleColors.map((color, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ scale: 0, rotate: 0, opacity: 1 }}
+                                initial={{ scale: 0, opacity: 1 }}
                                 animate={{
-                                    scale: [0, 20],
-                                    rotate: [0, 90 + (i * 45)],
-                                    opacity: [1, 1, 0]
+                                    scale: 40,
+                                    opacity: 1
                                 }}
                                 transition={{
-                                    duration: 1.5,
-                                    ease: "easeInOut",
-                                    delay: i * 0.05
+                                    duration: 1.2,
+                                    ease: "circIn",
+                                    delay: i * 0.15
                                 }}
-                                className={`absolute w-full h-full mix-blend-multiply ${color} rounded-full opacity-60`}
-                                style={{ originX: 0.5, originY: 0.5 }}
+                                className={`absolute w-24 h-24 rounded-full ${color} z-${10 + i}`}
                             />
                         ))}
-                        {/* White flush at the end to clean transition */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.8, duration: 0.5 }}
-                            className="absolute inset-0 bg-slate-50 z-60"
-                        />
                     </div>
                 )}
             </AnimatePresence>
+
 
             {/* Minimalist Entry UI */}
             <motion.div
@@ -69,22 +63,13 @@ const LandingPage = ({ onStart }) => {
                 transition={{ duration: 0.5 }}
                 className="relative z-10 w-full max-w-lg p-8 flex flex-col items-center space-y-10"
             >
-                {/* Logo */}
-                <motion.img
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
-                    src={stJohnsLogo}
-                    alt="St Johns Logo"
-                    className="w-32 h-auto mb-4 drop-shadow-sm"
-                />
 
-                <div className="space-y-2 text-center">
+                <div className="space-y-4 text-center">
                     <motion.h1
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-3xl font-bold text-slate-800 tracking-tight"
+                        className="text-6xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 via-pink-500 to-orange-500 bg-[length:300%_auto] animate-text-flow bg-clip-text text-transparent pb-2"
                     >
                         Hello
                     </motion.h1>
@@ -122,11 +107,22 @@ const LandingPage = ({ onStart }) => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         disabled={!name.trim()}
-                        className="px-10 py-3 bg-slate-900 text-white rounded-full text-lg font-bold tracking-wide shadow-lg hover:bg-blue-700 hover:shadow-blue-500/30 transition-all flex items-center gap-2"
+                        className="px-10 py-3 bg-red-600 text-white rounded-full text-lg font-bold tracking-wide shadow-lg hover:bg-red-700 hover:shadow-red-500/30 transition-all flex items-center gap-2"
                     >
                         ENTER <ArrowRight className="w-5 h-5" />
                     </motion.button>
                 </form>
+            </motion.div>
+
+            {/* Footer */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="absolute bottom-8 left-0 right-0 flex flex-col items-center space-y-3 z-20 pointer-events-none"
+            >
+                <img src={stJohnsLogo} alt="St Johns Logo" className="w-16 h-auto opacity-90 mix-blend-multiply grayscale hover:grayscale-0 transition-all duration-500" />
+                <p className="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">St Johns English Department 2026</p>
             </motion.div>
         </div>
     );
