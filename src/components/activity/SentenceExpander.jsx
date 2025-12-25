@@ -1,7 +1,66 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Zap, MapPin, Target, Eye, EyeOff, Sparkles, RotateCcw, PenTool, Trophy, Copy } from 'lucide-react';
+import { Clock, Zap, MapPin, Target, Eye, EyeOff, Sparkles, RotateCcw, PenTool, Trophy, Copy, Lightbulb, BookOpen, Palette } from 'lucide-react';
 import LevelSelector from './LevelSelector';
+
+// Author's Craft Analysis - breaking down techniques in the author's sentence
+const analyzeAuthorCraft = (authorSentence) => {
+    if (!authorSentence) return [];
+
+    const techniques = [];
+
+    // Check for adjectives (simplified detection)
+    if (/\b(sharp|stinging|dim|dark|bright|cold|warm|soft|hard|loud|quiet)\b/i.test(authorSentence)) {
+        techniques.push({
+            type: 'Sensory Details',
+            icon: '👁️',
+            description: 'The author uses words that help you see, hear, or feel the scene.',
+            color: 'blue'
+        });
+    }
+
+    // Check for emotional language
+    if (/\b(whispered|trembled|feared|hoped|dreamed|worried|excited)\b/i.test(authorSentence)) {
+        techniques.push({
+            type: 'Emotional Language',
+            icon: '💭',
+            description: 'Words that show how characters feel or create a mood.',
+            color: 'purple'
+        });
+    }
+
+    // Check for specific verbs
+    if (/\b(crept|dashed|crawled|whispered|shouted|glanced|stared)\b/i.test(authorSentence)) {
+        techniques.push({
+            type: 'Strong Verbs',
+            icon: '⚡',
+            description: 'Action words that are more specific than "said" or "went".',
+            color: 'amber'
+        });
+    }
+
+    // Check for prepositional phrases
+    if (/\b(behind|through|across|beneath|beside|between|around)\b/i.test(authorSentence)) {
+        techniques.push({
+            type: 'Location Details',
+            icon: '📍',
+            description: 'Words that help readers picture exactly where things happen.',
+            color: 'green'
+        });
+    }
+
+    // Default technique if none detected
+    if (techniques.length === 0) {
+        techniques.push({
+            type: 'Descriptive Writing',
+            icon: '✨',
+            description: 'The author adds details to paint a picture in the reader\'s mind.',
+            color: 'indigo'
+        });
+    }
+
+    return techniques;
+};
 
 const EXPANSION_PROMPTS = [
     {
@@ -370,7 +429,7 @@ const SentenceExpander = ({
                 </p>
             </div>
 
-            {/* Author Comparison */}
+            {/* Author Comparison with Craft Analysis */}
             {authorOriginal && (
                 <div className="space-y-3">
                     <button
@@ -387,17 +446,40 @@ const SentenceExpander = ({
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
+                                className="space-y-3"
                             >
-                                <p className="text-xs uppercase tracking-wider text-slate-500 mb-2 font-semibold">
-                                    Author's Version
-                                </p>
-                                <p className="text-lg font-serif text-slate-700 italic">
-                                    "{authorOriginal}"
-                                </p>
-                                <p className="text-xs text-slate-500 mt-3">
-                                    Notice how the author uses descriptive language. What techniques can you borrow?
-                                </p>
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                    <p className="text-xs uppercase tracking-wider text-slate-500 mb-2 font-semibold">
+                                        Author's Version
+                                    </p>
+                                    <p className="text-lg font-serif text-slate-700 italic">
+                                        "{authorOriginal}"
+                                    </p>
+                                </div>
+
+                                {/* Author's Craft Analysis */}
+                                {activityLevel === 1 && (
+                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Palette className="w-5 h-5 text-purple-600" />
+                                            <p className="text-sm font-bold text-purple-800">Author's Craft - Techniques Used</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {analyzeAuthorCraft(authorOriginal).map((technique, idx) => (
+                                                <div key={idx} className={`flex items-start gap-2 p-2 bg-white rounded-lg`}>
+                                                    <span className="text-lg">{technique.icon}</span>
+                                                    <div>
+                                                        <p className={`text-sm font-semibold text-${technique.color}-700`}>{technique.type}</p>
+                                                        <p className="text-xs text-slate-600">{technique.description}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-purple-600 mt-3 italic">
+                                            Try using these same techniques in your expanded sentence!
+                                        </p>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>

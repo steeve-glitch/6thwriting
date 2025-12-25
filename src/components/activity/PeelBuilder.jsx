@@ -1,7 +1,40 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Quote, MessageSquare, Link2, ChevronRight, ChevronLeft, Check, Sparkles, RotateCcw, Trophy, Copy } from 'lucide-react';
+import { FileText, Quote, MessageSquare, Link2, ChevronRight, ChevronLeft, Check, Sparkles, RotateCcw, Trophy, Copy, Eye, EyeOff, CheckCircle2, Circle, Lightbulb } from 'lucide-react';
 import LevelSelector from './LevelSelector';
+
+// Model paragraph example that students can view
+const MODEL_PARAGRAPH = {
+    point: "The author uses the setting to create a tense atmosphere.",
+    evidence: "the dim hallway echoed with whispers",
+    explanation: "The word 'dim' suggests darkness and uncertainty, while 'echoed' makes the space feel empty and eerie. The 'whispers' add mystery because we don't know who is whispering or what they're saying.",
+    link: "This tense atmosphere helps the reader feel the same fear that the main character experiences.",
+    full: "The author uses the setting to create a tense atmosphere. We see this when the text describes how \"the dim hallway echoed with whispers.\" The word 'dim' suggests darkness and uncertainty, while 'echoed' makes the space feel empty and eerie. The 'whispers' add mystery because we don't know who is whispering or what they're saying. This tense atmosphere helps the reader feel the same fear that the main character experiences."
+};
+
+// Success criteria for each PEEL component
+const SUCCESS_CRITERIA = {
+    point: [
+        { text: "States a clear main idea or argument", key: "clear" },
+        { text: "Is specific (not too vague)", key: "specific" },
+        { text: "Can be supported with evidence", key: "supportable" }
+    ],
+    evidence: [
+        { text: "Uses a quote directly from the text", key: "quote" },
+        { text: "Is relevant to your point", key: "relevant" },
+        { text: "Uses quotation marks correctly", key: "punctuation" }
+    ],
+    explanation: [
+        { text: "Explains what the quote means", key: "meaning" },
+        { text: "Connects the quote to your point", key: "connection" },
+        { text: "Uses specific words from the quote", key: "specific" }
+    ],
+    link: [
+        { text: "Returns to your main point", key: "returns" },
+        { text: "Shows why this matters", key: "significance" },
+        { text: "Wraps up your argument", key: "conclusion" }
+    ]
+};
 
 const STEPS = [
     {
@@ -66,6 +99,22 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
     const [copied, setCopied] = useState(false);
     const [errors, setErrors] = useState({});
     const [activityLevel, setActivityLevel] = useState(level);
+    const [showModelParagraph, setShowModelParagraph] = useState(false);
+    const [checkedCriteria, setCheckedCriteria] = useState({});
+
+    // Toggle a success criteria checkbox
+    const toggleCriteria = (stepId, criteriaKey) => {
+        const key = `${stepId}-${criteriaKey}`;
+        setCheckedCriteria(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
+
+    // Check if a criteria is checked
+    const isCriteriaChecked = (stepId, criteriaKey) => {
+        return checkedCriteria[`${stepId}-${criteriaKey}`] || false;
+    };
 
     const currentStepData = STEPS[currentStep];
 
@@ -281,12 +330,55 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Level Selector */}
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-800">PEEL Paragraph</h2>
                 <LevelSelector level={activityLevel} onChange={setActivityLevel} accentColor={accentColor} />
             </div>
+
+            {/* Model Paragraph Toggle (Level 1 only) */}
+            {activityLevel === 1 && (
+                <div>
+                    <button
+                        onClick={() => setShowModelParagraph(!showModelParagraph)}
+                        className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                    >
+                        {showModelParagraph ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showModelParagraph ? 'Hide Example' : 'See an Example PEEL Paragraph'}
+                    </button>
+                    <AnimatePresence>
+                        {showModelParagraph && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 overflow-hidden"
+                            >
+                                <div className="flex items-start gap-2 mb-3">
+                                    <Lightbulb className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-indigo-800">Example PEEL Paragraph</p>
+                                </div>
+                                <div className="text-sm text-slate-700 leading-relaxed space-y-2">
+                                    <p>
+                                        <span className="bg-blue-100 px-1 rounded font-medium">{MODEL_PARAGRAPH.point}</span>{' '}
+                                        We see this when the text describes how{' '}
+                                        <span className="bg-purple-100 px-1 rounded font-medium">"{MODEL_PARAGRAPH.evidence}"</span>{' '}
+                                        <span className="bg-green-100 px-1 rounded">{MODEL_PARAGRAPH.explanation}</span>{' '}
+                                        <span className="bg-amber-100 px-1 rounded">{MODEL_PARAGRAPH.link}</span>
+                                    </p>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">Point</span>
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">Evidence</span>
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Explanation</span>
+                                    <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">Link</span>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
 
             {/* Step Progress */}
             <div className="flex items-center gap-2">
@@ -412,6 +504,34 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
                                         Minimum: {currentStepData.id === 'explanation' ? 25 : 15} characters
                                     </span>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Success Criteria Checklist (Level 1 only) */}
+                    {activityLevel === 1 && SUCCESS_CRITERIA[currentStepData.id] && (
+                        <div className="mt-4 bg-slate-50 rounded-xl p-3 border border-slate-200">
+                            <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                Self-Check: Does your {currentStepData.label.toLowerCase()}...
+                            </p>
+                            <div className="space-y-1">
+                                {SUCCESS_CRITERIA[currentStepData.id].map((criteria) => (
+                                    <button
+                                        key={criteria.key}
+                                        onClick={() => toggleCriteria(currentStepData.id, criteria.key)}
+                                        className={`flex items-center gap-2 w-full text-left text-sm p-2 rounded-lg transition-all
+                                            ${isCriteriaChecked(currentStepData.id, criteria.key)
+                                                ? 'bg-green-50 text-green-700'
+                                                : 'text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        {isCriteriaChecked(currentStepData.id, criteria.key)
+                                            ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                            : <Circle className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                        }
+                                        {criteria.text}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     )}

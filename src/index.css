@@ -53,3 +53,29 @@
     @apply antialiased text-slate-800 bg-slate-50;
   }
 }
+
+/* Custom Theme Fonts */
+.font-noir {
+  font-family: 'Courier Prime', monospace;
+}
+
+.font-historical {
+  font-family: 'Merriweather', serif;
+}
+
+.font-notebook {
+  font-family: 'Patrick Hand', cursive;
+}
+
+/* Theme Backgrounds */
+.bg-notebook-pattern {
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-noir-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}

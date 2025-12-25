@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ActivityLayout from './ActivityLayout';
 import TextPanel from './TextPanel';
 import SentenceBuilder from './SentenceBuilder';
@@ -6,7 +6,9 @@ import PeelBuilder from './PeelBuilder';
 import SentenceExpander from './SentenceExpander';
 import HighlightModal from './HighlightModal';
 import AiAssistant from '../AiAssistant';
-import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords } from 'lucide-react';
+import InstructionBar from '../InstructionBar';
+import { useProgress } from '../../context/ProgressContext';
+import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, Search } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -16,31 +18,64 @@ const CATEGORY_CONFIG = {
     conflict: { label: 'Conflict', color: 'red', icon: Swords }
 };
 
+const BOOK_ID = 'bug-muldoon';
+
+const INSTRUCTIONS = {
+    scramble: {
+        instruction: "Drag the words into the correct order to build the sentence.",
+        tip: "Read the words first. Think about what makes sense!"
+    },
+    reading: {
+        instruction: "Find clues in the story! Highlight important words or phrases.",
+        tip: "Click and drag to select text on the left side."
+    },
+    peel: {
+        instruction: "Write a paragraph step by step. Follow the 4 steps below.",
+        tip: "Take your time with each step before moving on."
+    },
+    expand: {
+        instruction: "Make the simple sentence more interesting by adding details.",
+        tip: "Answer the questions to add color to your writing."
+    }
+};
+
 const BugMuldoonModule = ({ onBack, userName }) => {
+    const { markTabComplete, setLastTab, isTabComplete, getNextIncompleteTab } = useProgress();
     const [activeTab, setActiveTab] = useState('scramble');
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [highlights, setHighlights] = useState([]);
     const [activityLevel, setActivityLevel] = useState(1);
-    const [completedTabs, setCompletedTabs] = useState({
-        scramble: false,
-        reading: false,
-        peel: false,
-        expand: false
-    });
 
-    // Highlight modal state
+    const completedTabs = {
+        scramble: isTabComplete(BOOK_ID, 'scramble'),
+        reading: isTabComplete(BOOK_ID, 'reading'),
+        peel: isTabComplete(BOOK_ID, 'peel'),
+        expand: isTabComplete(BOOK_ID, 'expand')
+    };
+
     const [showHighlightModal, setShowHighlightModal] = useState(false);
     const [pendingHighlight, setPendingHighlight] = useState(null);
 
     const tabs = [
-        { id: 'scramble', label: 'Reconstruct', icon: Move },
-        { id: 'reading', label: 'Investigate', icon: Highlighter },
-        { id: 'peel', label: 'Analyze', icon: Layers },
-        { id: 'expand', label: 'Create', icon: Maximize2 }
+        { id: 'scramble', label: 'Build Sentence', shortLabel: '1', icon: Move },
+        { id: 'reading', label: 'Find Clues', shortLabel: '2', icon: Highlighter },
+        { id: 'peel', label: 'Write Paragraph', shortLabel: '3', icon: Layers },
+        { id: 'expand', label: 'Add Details', shortLabel: '4', icon: Maximize2 }
     ];
 
+    useEffect(() => {
+        setLastTab(BOOK_ID, activeTab);
+    }, [activeTab, setLastTab]);
+
+    useEffect(() => {
+        const nextTab = getNextIncompleteTab(BOOK_ID);
+        if (nextTab && nextTab !== activeTab) {
+            setActiveTab(nextTab);
+        }
+    }, []);
+
     const handleTabComplete = (tabId) => {
-        setCompletedTabs(prev => ({ ...prev, [tabId]: true }));
+        markTabComplete(BOOK_ID, tabId);
     };
 
     const advanceToNextTab = (currentTabId) => {
@@ -111,13 +146,13 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
         setHighlights(prev => prev.filter(h => h.text !== highlight.text));
     };
 
-    // Get activity label for AI context
+    // Get activity label for AI context (using kid-friendly labels)
     const getActivityLabel = () => {
         switch (activeTab) {
-            case 'scramble': return 'Syntactic Reconstruction';
-            case 'reading': return 'Textual Analysis';
-            case 'peel': return 'Analytical Writing';
-            case 'expand': return 'Creative Emulation';
+            case 'scramble': return 'Build the Sentence';
+            case 'reading': return 'Find the Clues';
+            case 'peel': return 'Write Your Paragraph';
+            case 'expand': return 'Add Details';
             default: return 'Reading Activity';
         }
     };
@@ -148,6 +183,18 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
             <ActivityLayout
                 onBack={onBack}
                 accentColor="bg-green-600"
+                bookTitle="Bug Muldoon"
+                theme={{
+                    mainBg: 'bg-slate-900 bg-noir-pattern',
+                    panelBg: 'bg-[#fdfbf6]', // Manila folder color
+                    font: 'font-noir',
+                    borderColor: 'border-slate-800',
+                    backgroundImage: (
+                        <div className="absolute -bottom-20 -right-20 opacity-10 rotate-12 pointer-events-none">
+                            <Search className="w-96 h-96 text-white" />
+                        </div>
+                    )
+                }}
                 leftPanel={
                     <TextPanel
                         title="Bug Muldoon"
@@ -160,21 +207,32 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                 }
                 rightPanel={
                     <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
-                        {/* Tab Switcher */}
+                        {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
-                            {tabs.map((tab) => {
+                            {tabs.map((tab, index) => {
                                 const Icon = tab.icon;
                                 const isCompleted = completedTabs[tab.id];
                                 const isActive = activeTab === tab.id;
+                                const isPreviousComplete = index === 0 || completedTabs[tabs[index - 1].id];
 
                                 return (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2
-                                            ${isActive ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            ${isActive ? 'bg-white text-emerald-600 shadow-sm ring-2 ring-emerald-200' : 'text-slate-500 hover:text-slate-700'}
+                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}
                                     >
-                                        {isCompleted ? <div className="w-4 h-4 text-green-500">✓</div> : <Icon className="w-4 h-4" />}
+                                        {isCompleted ? (
+                                            <div className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
+                                                <Check className="w-3 h-3" />
+                                            </div>
+                                        ) : (
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
+                                                ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-600'}`}>
+                                                {tab.shortLabel}
+                                            </div>
+                                        )}
                                         <span className="hidden sm:inline">{tab.label}</span>
                                     </button>
                                 );
@@ -186,19 +244,18 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                             {/* Sentence Building */}
                             {activeTab === 'scramble' && (
                                 <>
-                                    <div className="mb-4">
-                                        <h2 className="text-xl font-bold text-slate-800 mb-2">Syntactic Reconstruction</h2>
-                                        <p className="text-slate-600">
-                                            Reconstruct this sentence to see how Shipton introduces the character's anxiety. Pay attention to the punctuation.
-                                        </p>
-                                    </div>
+                                    <InstructionBar
+                                        instruction={INSTRUCTIONS.scramble.instruction}
+                                        tip={INSTRUCTIONS.scramble.tip}
+                                        accentColor="emerald"
+                                    />
                                     <div className="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-inner min-h-[400px]">
                                         <SentenceBuilder
                                             initialWords={wordBank}
                                             onComplete={() => {
                                                 handleTabComplete('scramble');
-                                                setTimeout(() => advanceToNextTab('scramble'), 1500); // Pass explicit ID
                                             }}
+                                            onNext={() => advanceToNextTab('scramble')}
                                         />
                                     </div>
                                 </>
@@ -207,12 +264,11 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                             {/* Close Reading */}
                             {activeTab === 'reading' && (
                                 <div className="space-y-6 flex flex-col h-full">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-800 mb-2">Genre Investigation</h2>
-                                        <p className="text-slate-600">
-                                            Highlight evidence that establishes the <strong>"Noir" Detective</strong> genre. Look for hard-boiled language, cynicism, or contrasting humor.
-                                        </p>
-                                    </div>
+                                    <InstructionBar
+                                        instruction={INSTRUCTIONS.reading.instruction}
+                                        tip={INSTRUCTIONS.reading.tip}
+                                        accentColor="emerald"
+                                    />
 
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex-1">
                                         <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">

@@ -1,8 +1,54 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, Bug, Pencil, BookOpen, ArrowRight } from 'lucide-react';
+import { Star, Bug, Pencil, ArrowRight, CheckCircle, PlayCircle } from 'lucide-react';
+import { useProgress } from '../context/ProgressContext';
+import logo from '../assets/StJohnsLogo.png';
 
-const BookCard = ({ title, author, image, onClick, delay, variant }) => {
+const ProgressRing = ({ percentage, size = 48, strokeWidth = 4 }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <div className="relative" style={{ width: size, height: size }}>
+            <svg className="transform -rotate-90" width={size} height={size}>
+                <circle
+                    className="text-white/20"
+                    strokeWidth={strokeWidth}
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+                <circle
+                    className="text-white transition-all duration-500"
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+                {percentage === 100 ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                ) : (
+                    <span className="text-xs font-bold text-white">{percentage}%</span>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const BookCard = ({ title, author, image, onClick, delay, variant, bookId, isFirstBook, hasAnyProgress }) => {
+    const { getBookPercentage } = useProgress();
+    const percentage = getBookPercentage(bookId);
+    const showStartHere = isFirstBook && !hasAnyProgress;
     
     // Gradient overlays based on genre for text readability
     const overlays = {
@@ -33,6 +79,23 @@ const BookCard = ({ title, author, image, onClick, delay, variant }) => {
                 <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-80 group-hover:opacity-90 transition-opacity`} />
             </div>
 
+            {/* Progress Ring - Top Right */}
+            <div className="absolute top-4 right-4 z-10">
+                <ProgressRing percentage={percentage} />
+            </div>
+
+            {/* Start Here Badge */}
+            {showStartHere && (
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: delay + 0.3, type: 'spring' }}
+                    className="absolute top-4 left-4 z-10 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg"
+                >
+                    Start Here
+                </motion.div>
+            )}
+
             {/* Content */}
             <div className="absolute inset-0 p-8 flex flex-col justify-end text-left">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
@@ -42,9 +105,9 @@ const BookCard = ({ title, author, image, onClick, delay, variant }) => {
                     <p className="text-lg text-white/90 font-medium font-serif tracking-wide mb-6">
                         {author}
                     </p>
-                    
+
                     <div className="flex items-center gap-2 text-white/0 group-hover:text-white font-bold tracking-widest uppercase text-xs transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                        Start Adventure
+                        {percentage > 0 && percentage < 100 ? 'Continue' : percentage === 100 ? 'Review' : 'Start Adventure'}
                         <ArrowRight className="w-4 h-4" />
                     </div>
                 </div>
@@ -53,13 +116,23 @@ const BookCard = ({ title, author, image, onClick, delay, variant }) => {
     );
 };
 
+const BOOK_TITLES = {
+    'bug-muldoon': 'Bug Muldoon',
+    'number-the-stars': 'Number the Stars',
+    'sticks-and-stones': 'Sticks and Stones'
+};
+
 const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
+    const { getContinuePoint, hasAnyProgress } = useProgress();
+    const continuePoint = getContinuePoint();
+    const anyProgress = hasAnyProgress();
+
     const books = [
         {
             id: 'bug-muldoon',
             title: "Bug Muldoon",
             author: "Paul Shipton",
-            image: "https://images.unsplash.com/photo-1469212044023-0e55b4b9745a?auto=format&fit=crop&w=800&q=80", // Dramatic Beetle/Garden
+            image: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80",
             icon: Bug,
             variant: "noir",
         },
@@ -67,7 +140,7 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'number-the-stars',
             title: "Number the Stars",
             author: "Lois Lowry",
-            image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80", // Starry Night/Historical
+            image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80",
             icon: Star,
             variant: "historical",
         },
@@ -75,7 +148,7 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'sticks-and-stones',
             title: "Sticks and Stones",
             author: "Abby Cooper",
-            image: "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80", // Colorful Notebook/Pencils
+            image: "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80",
             icon: Pencil,
             variant: "sketch",
         }
@@ -85,11 +158,9 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
         <div className="min-h-screen bg-slate-50 relative overflow-y-auto font-sans selection:bg-indigo-100">
             {/* Header Section */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
-                <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
-                            <BookOpen className="w-5 h-5" />
-                        </div>
+                        <img src={logo} alt="St Johns Logo" className="h-12 w-auto object-contain" />
                         <div>
                             <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">Student Dashboard</p>
                             <h1 className="text-xl font-bold text-slate-900">
@@ -97,35 +168,40 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
                             </h1>
                         </div>
                     </div>
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        Online
-                    </div>
                 </div>
             </div>
 
             <main className="max-w-7xl mx-auto px-6 py-12">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-12 text-center"
-                >
-                    <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">
-                        Your Next Adventure
-                    </h2>
-                    <p className="text-xl text-slate-500 max-w-2xl mx-auto">
-                        Choose a story to begin your mission.
-                    </p>
-                </motion.div>
+                {/* Continue Button */}
+                {continuePoint && (
+                    <motion.button
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={() => onSelectBook && onSelectBook(continuePoint.bookId)}
+                        className="w-full mb-8 p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl text-white flex items-center justify-between shadow-lg hover:shadow-xl transition-shadow group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <PlayCircle className="w-8 h-8" />
+                            <div className="text-left">
+                                <p className="text-sm opacity-80">Continue where you left off</p>
+                                <p className="text-lg font-bold">{BOOK_TITLES[continuePoint.bookId]}</p>
+                            </div>
+                        </div>
+                        <ArrowRight className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {/* Book Cards */}
                     {books.map((book, index) => (
                         <BookCard
-                            key={index}
+                            key={book.id}
                             {...book}
+                            bookId={book.id}
                             delay={index * 0.1 + 0.2}
                             onClick={() => onSelectBook && onSelectBook(book.id)}
+                            isFirstBook={index === 0}
+                            hasAnyProgress={anyProgress}
                         />
                     ))}
                 </div>
