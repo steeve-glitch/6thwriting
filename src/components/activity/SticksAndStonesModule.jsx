@@ -8,7 +8,7 @@ import HighlightModal from './HighlightModal';
 import AiAssistant from '../AiAssistant';
 import InstructionBar from '../InstructionBar';
 import { useProgress } from '../../context/ProgressContext';
-import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check } from 'lucide-react';
+import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, BookOpen, ArrowRight } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -45,6 +45,10 @@ const SticksAndStonesModule = ({ onBack, userName }) => {
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [highlights, setHighlights] = useState([]);
     const [activityLevel, setActivityLevel] = useState(1);
+
+    // New state for reading focus
+    const [hasStarted, setHasStarted] = useState(false);
+    const [isTextCollapsed, setIsTextCollapsed] = useState(false);
 
     const completedTabs = {
         scramble: isTabComplete(BOOK_ID, 'scramble'),
@@ -85,19 +89,24 @@ const SticksAndStonesModule = ({ onBack, userName }) => {
         }
     };
 
+    const handleStartActivities = () => {
+        setHasStarted(true);
+        setIsTextCollapsed(true);
+    };
+
     // Chapter content
     const chapterContent = `
 CHAPTER ONE
 
-There’s a word for people like me.
+Thereâ€™s a word for people like me.
 Actually, there are a lot of words for people like me.
 Freak. Weirdo. Monster.
-I’ve heard them all.
+Iâ€™ve heard them all.
 
-But the word I hate the most isn’t any of those. It’s the one that’s supposed to be nice.
+But the word I hate the most isnâ€™t any of those. Itâ€™s the one thatâ€™s supposed to be nice.
 *Special.*
 
-Adults use it when they don’t know what else to say. "Elyse is so... special," they tell my mom, their voices trailing off as they stare at my arms.
+Adults use it when they donâ€™t know what else to say. "Elyse is so... special," they tell my mom, their voices trailing off as they stare at my arms.
 I look down at my skin. Today, the words *clumsy* and *anxious* are blooming just above my left wrist, in a jagged, dark blue font that matches my mood.
   `;
 
@@ -111,14 +120,14 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
     // PEEL quotes for guided mode
     const peelQuotes = [
         "Actually, there are a lot of words for people like me.",
-        "It’s the one that’s supposed to be nice. Special.",
+        "Itâ€™s the one thatâ€™s supposed to be nice. Special.",
         "their voices trailing off as they stare at my arms",
         "the words clumsy and anxious are blooming just above my left wrist"
     ];
 
     // Sentence expansion data
     const sentenceKernel = "I heard words.";
-    const authorSentence = "I heard the sharp, stinging words that people whispered behind their hands.";
+    const authorSentence = "I heard the sharp, stinging words that people whispered behind their hands."; 
 
     // Handle text selection for highlighting
     const handleHighlight = ({ text }) => {
@@ -166,7 +175,7 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                 ).join('; ');
                 return `Student is analyzing the theme of Identity and the supernatural element (words on skin). Current highlights: ${highlightSummary || 'none yet'}`;
             case 'peel':
-                return "Student is writing a PEEL paragraph analyzing the irony of the word 'Special'.";
+                return "Student is writing a PEEL paragraph analyzing the irony of the word 'Special'.";  
             case 'expand':
                 return `Student is expanding the kernel sentence "${sentenceKernel}" to capture the protagonist's internal voice.`;
             default:
@@ -174,7 +183,25 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
         }
     };
 
-
+    // Initial "Read First" View
+    const renderWelcomeScreen = () => (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+                <BookOpen className="w-10 h-10 text-orange-600" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 mb-4">Read the Story First!</h2>
+            <p className="text-lg text-slate-600 max-w-md mb-8">
+                Take your time to read the text on the left. When you're ready, we'll start analyzing!
+            </p>
+            <button
+                onClick={handleStartActivities}
+                className="group flex items-center gap-3 px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+            >
+                Start Activities
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </button>
+        </div>
+    );
 
     return (
         <>
@@ -182,13 +209,15 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                 onBack={onBack}
                 accentColor="bg-orange-600"
                 bookTitle="Sticks and Stones"
+                isTextCollapsed={isTextCollapsed}
+                onToggleTextCollapsed={setIsTextCollapsed}
                 theme={{
                     mainBg: 'bg-orange-50 bg-notebook-pattern',
                     panelBg: 'bg-white',
                     font: 'font-notebook',
                     borderColor: 'border-orange-200',
                     backgroundImage: (
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">  
                             <div className="absolute top-10 left-10 text-6xl font-bold -rotate-12">Freak</div>
                             <div className="absolute bottom-20 right-20 text-8xl font-bold rotate-6">Special</div>
                             <div className="absolute top-1/2 left-20 text-5xl font-bold rotate-12">Words</div>
@@ -207,6 +236,7 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                     />
                 }
                 rightPanel={
+                    !hasStarted ? renderWelcomeScreen() : (
                     <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
                         {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
@@ -222,7 +252,7 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2
                                             ${isActive ? 'bg-white text-orange-600 shadow-sm ring-2 ring-orange-200' : 'text-slate-500 hover:text-slate-700'}
-                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}
+                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}  
                                     >
                                         {isCompleted ? (
                                             <div className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
@@ -351,6 +381,7 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                             )}
                         </div>
                     </div>
+                    )
                 }
             />
 

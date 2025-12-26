@@ -8,7 +8,7 @@ import HighlightModal from './HighlightModal';
 import AiAssistant from '../AiAssistant';
 import InstructionBar from '../InstructionBar';
 import { useProgress } from '../../context/ProgressContext';
-import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Lock, Check, Star } from 'lucide-react';
+import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Lock, Check, Star, BookOpen, ArrowRight } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -46,6 +46,10 @@ const NumberTheStarsModule = ({ onBack, userName }) => {
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [highlights, setHighlights] = useState([]);
     const [activityLevel, setActivityLevel] = useState(1);
+
+    // New state for reading focus
+    const [hasStarted, setHasStarted] = useState(false);
+    const [isTextCollapsed, setIsTextCollapsed] = useState(false);
 
     // Sync with progress context
     const completedTabs = {
@@ -91,13 +95,18 @@ const NumberTheStarsModule = ({ onBack, userName }) => {
         }
     };
 
+    const handleStartActivities = () => {
+        setHasStarted(true);
+        setIsTextCollapsed(true);
+    };
+
     // Chapter content
     const chapterContent = `
 "I'll race you to the corner, Ellen!" Annemarie adjusted the thick leather pack on her back so that her schoolbooks balanced evenly. "Ready?"
 
 "No," Ellen cried, laughing. "You know I can't beat you. My legs aren't as long. Can't we just walk, like civilized people?" She was a stocky ten-year-old, unlike lanky Annemarie.
 
-"We have to practice for the athletic meet on Friday—I know I'm going to win the girls' race this week. I was second last week, but I've been practicing every day. Come on, Ellen!" Annemarie pleaded, eyeing the distance to the next corner of the Copenhagen street. "Please?"
+"We have to practice for the athletic meet on Fridayâ€”I know I'm going to win the girls' race this week. I was second last week, but I've been practicing every day. Come on, Ellen!" Annemarie pleaded, eyeing the distance to the next corner of the Copenhagen street. "Please?"
 
 Ellen hesitated, then nodded and shifted her own rucksack of books against her shoulders. "Oh, all right. Ready," she said.
 
@@ -163,7 +172,7 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
     const getActivityData = () => {
         switch (activeTab) {
             case 'scramble':
-                return "Student is reconstructing a sentence showing Ellen's reluctance and compliance.";
+                return "Student is reconstructing a sentence showing Ellen's reluctance and compliance."; 
             case 'reading':
                 const highlightSummary = highlights.map(h =>
                     `"${h.text}" (${CATEGORY_CONFIG[h.category]?.label || 'uncategorized'}): ${h.explanation || 'no explanation'}`
@@ -178,7 +187,25 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
         }
     };
 
-
+    // Initial "Read First" View
+    const renderWelcomeScreen = () => (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-6">
+                <BookOpen className="w-10 h-10 text-sky-600" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 mb-4">Read the Story First!</h2>
+            <p className="text-lg text-slate-600 max-w-md mb-8">
+                Take your time to read the text on the left. When you're ready, we'll start analyzing!
+            </p>
+            <button
+                onClick={handleStartActivities}
+                className="group flex items-center gap-3 px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+            >
+                Start Activities
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </button>
+        </div>
+    );
 
     return (
         <>
@@ -186,6 +213,8 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
                 onBack={onBack}
                 accentColor="bg-sky-600"
                 bookTitle="Number the Stars"
+                isTextCollapsed={isTextCollapsed}
+                onToggleTextCollapsed={setIsTextCollapsed}
                 theme={{
                     mainBg: 'bg-slate-800',
                     panelBg: 'bg-slate-50',
@@ -208,6 +237,7 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
                     />
                 }
                 rightPanel={
+                    !hasStarted ? renderWelcomeScreen() : (
                     <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
                         {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
@@ -223,7 +253,7 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2
                                             ${isActive ? 'bg-white text-sky-600 shadow-sm ring-2 ring-sky-200' : 'text-slate-500 hover:text-slate-700'}
-                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}
+                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}  
                                     >
                                         {isCompleted ? (
                                             <div className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
@@ -300,9 +330,9 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
                                         )}
                                     </div>
 
-                                    <div className="bg-sky-50 p-4 rounded-xl border border-sky-100">
+                                    <div className="bg-sky-50 p-4 rounded-xl border border-sky-100">      
                                         <p className="text-sm text-sky-800">
-                                            <strong>Inquiry Focus:</strong> "Stocky" vs. "Lanky" — how do these physical traits reflect their approach to the "race"?
+                                            <strong>Inquiry Focus:</strong> "Stocky" vs. "Lanky" â€” how do these physical traits reflect their approach to the "race"?
                                         </p>
                                     </div>
 
@@ -352,6 +382,7 @@ Ellen hesitated, then nodded and shifted her own rucksack of books against her s
                             )}
                         </div>
                     </div>
+                    )
                 }
             />
 
