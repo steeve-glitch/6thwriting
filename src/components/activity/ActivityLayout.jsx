@@ -40,15 +40,15 @@ const ActivityLayout = ({
             className={`h-screen flex flex-col ${mainBg} ${font} overflow-hidden`}
         >
             {/* Header */}
-            <header className={`h-16 ${panelBg} border-b ${borderColor} flex items-center px-6 justify-between flex-shrink-0 z-20 shadow-sm transition-colors duration-300`}>
-                <div className="flex items-center gap-4">
+            <header className={`h-14 sm:h-16 ${panelBg} border-b ${borderColor} flex items-center px-4 sm:px-6 justify-between flex-shrink-0 z-20 shadow-sm transition-colors duration-300`}>
+                <div className="flex items-center gap-2 sm:gap-4">
                     <button
                         onClick={onBack}
                         className={`p-2 hover:bg-black/5 rounded-full transition-colors text-slate-500 hover:text-slate-800`}
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <div className={`h-6 w-px ${borderColor.replace('border', 'bg')}`} />
+                    <div className={`h-6 w-px hidden sm:block ${borderColor.replace('border', 'bg')}`} />
                     <h1 className="font-bold text-slate-800 text-lg hidden sm:block">{bookTitle} Activity</h1>
                 </div>
 
@@ -157,7 +157,7 @@ const ActivityLayout = ({
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.2 }}
-                                className="h-full p-4 overflow-auto"
+                                className="h-full p-3 sm:p-4 overflow-auto"
                             >
                                 {leftPanel}
                             </motion.div>
@@ -170,7 +170,7 @@ const ActivityLayout = ({
                                 transition={{ duration: 0.2 }}
                                 className="h-full bg-white overflow-auto"
                             >
-                                <div className="p-4">
+                                <div className="p-3 sm:p-4">
                                     {rightPanel}
                                 </div>
                             </motion.div>
@@ -179,27 +179,41 @@ const ActivityLayout = ({
                 </div>
 
                 {/* Mobile Tab Bar */}
-                <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-2 safe-area-pb"> 
+                <div className="flex-shrink-0 bg-white border-t border-slate-200 px-3 py-2 safe-area-pb">
                     <div className="flex gap-2">
                         <button
                             onClick={() => setMobileTab('text')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all
+                            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all relative
                                 ${mobileTab === 'text'
-                                    ? `${accentColor} text-white shadow-md`
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                    ? `${accentColor} text-white shadow-lg scale-[1.02]`
+                                    : 'bg-slate-100 text-slate-500 active:bg-slate-200'}`}
                         >
                             <BookText className="w-5 h-5" />
                             <span>Read</span>
+                            {mobileTab === 'text' && (
+                                <motion.div
+                                    layoutId="activeTabIndicator"
+                                    className="absolute inset-0 rounded-xl bg-white/10"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                />
+                            )}
                         </button>
                         <button
                             onClick={() => setMobileTab('activity')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all
+                            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all relative
                                 ${mobileTab === 'activity'
-                                    ? `${accentColor} text-white shadow-md`
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                    ? `${accentColor} text-white shadow-lg scale-[1.02]`
+                                    : 'bg-slate-100 text-slate-500 active:bg-slate-200'}`}
                         >
                             <PenTool className="w-5 h-5" />
                             <span>Activity</span>
+                            {mobileTab === 'activity' && (
+                                <motion.div
+                                    layoutId="activeTabIndicator"
+                                    className="absolute inset-0 rounded-xl bg-white/10"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                />
+                            )}
                         </button>
                     </div>
                 </div>

@@ -21,33 +21,33 @@ const LandingPage = ({ onStart }) => {
         <div className="relative flex items-center justify-center min-h-screen overflow-hidden bg-white font-sans selection:bg-pink-200">
             
             {/* The Living Canvas - Animated Blobs */}
-            <div className="absolute inset-0 z-0 opacity-40 overflow-hidden">
-                <motion.div 
-                    animate={{
-                        x: [0, 100, 0],
-                        y: [0, -50, 0],
-                        scale: [1, 1.2, 1],
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-400 blur-[100px]" 
-                />
-                <motion.div 
-                    animate={{
-                        x: [0, -80, 0],
-                        y: [0, 100, 0],
-                        scale: [1, 1.1, 1],
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-pink-400 blur-[100px]" 
-                />
-                <motion.div 
+            <div className="absolute inset-0 z-0 opacity-30 sm:opacity-40 overflow-hidden">
+                <motion.div
                     animate={{
                         x: [0, 50, 0],
+                        y: [0, -25, 0],
+                        scale: [1, 1.1, 1],
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[-10%] left-[-10%] w-[50%] sm:w-[60%] h-[50%] sm:h-[60%] rounded-full bg-blue-400 blur-[60px] sm:blur-[100px]"
+                />
+                <motion.div
+                    animate={{
+                        x: [0, -40, 0],
                         y: [0, 50, 0],
-                        scale: [1, 1.3, 1],
+                        scale: [1, 1.05, 1],
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute bottom-[-10%] right-[-10%] w-[50%] sm:w-[60%] h-[50%] sm:h-[60%] rounded-full bg-pink-400 blur-[60px] sm:blur-[100px]"
+                />
+                <motion.div
+                    animate={{
+                        x: [0, 25, 0],
+                        y: [0, 25, 0],
+                        scale: [1, 1.15, 1],
                     }}
                     transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-yellow-300 blur-[100px]" 
+                    className="absolute top-[20%] right-[10%] w-[35%] sm:w-[40%] h-[35%] sm:h-[40%] rounded-full bg-yellow-300 blur-[60px] sm:blur-[100px]"
                 />
             </div>
 
@@ -59,32 +59,32 @@ const LandingPage = ({ onStart }) => {
                     { opacity: 1, scale: 1 }
                 }
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 w-full max-w-xl px-6 flex flex-col items-center"
+                className="relative z-10 w-full max-w-xl px-4 sm:px-6 flex flex-col items-center"
             >
                 {/* Typography */}
-                <div className="text-center space-y-4 mb-12">
-                    <motion.h1 
+                <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12">
+                    <motion.h1
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="text-7xl md:text-8xl font-black tracking-tight leading-none"
+                        className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tight leading-none"
                     >
                         <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-600 via-indigo-600 to-pink-600">
                             Hello
                         </span>
                     </motion.h1>
-                    <motion.p 
+                    <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4 }}
-                        className="text-xl text-slate-500 font-medium tracking-tight"
+                        className="text-lg sm:text-xl text-slate-500 font-medium tracking-tight"
                     >
                         Ready for your next mission?
                     </motion.p>
                 </div>
 
                 {/* Interactive Form */}
-                <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
+                <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 sm:space-y-6 px-2 sm:px-0">
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -97,7 +97,7 @@ const LandingPage = ({ onStart }) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Type your name"
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-2xl font-bold text-slate-800 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner text-center"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-4 sm:py-5 text-xl sm:text-2xl font-bold text-slate-800 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner text-center"
                         />
                     </motion.div>
 
@@ -124,11 +124,11 @@ const LandingPage = ({ onStart }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="absolute bottom-10 flex flex-col items-center gap-4"
+                className="absolute bottom-6 sm:bottom-10 flex flex-col items-center gap-3 sm:gap-4"
             >
-                <div className="h-px w-12 bg-slate-200" />
-                <img src={stJohnsLogo} alt="Logo" className="w-16 h-auto transition-opacity cursor-pointer" />
-                <p className="text-slate-400 text-[10px] font-black tracking-[0.4em] uppercase">
+                <div className="h-px w-10 sm:w-12 bg-slate-200" />
+                <img src={stJohnsLogo} alt="Logo" className="w-12 sm:w-16 h-auto transition-opacity cursor-pointer" />
+                <p className="text-slate-400 text-[9px] sm:text-[10px] font-black tracking-[0.3em] sm:tracking-[0.4em] uppercase">
                     Literacy Companion
                 </p>
             </motion.div>

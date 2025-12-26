@@ -50,6 +50,7 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
     const percentage = getBookPercentage(bookId);
     const showStartHere = isFirstBook && !hasAnyProgress;
     const videoRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
 
     // Gradient overlays based on genre for text readability
     const overlays = {
@@ -63,6 +64,7 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
     const handleMouseEnter = () => {
         if (videoRef.current) {
             videoRef.current.play().catch(e => console.log('Hover play error:', e));
+            setIsPlaying(true);
         }
     };
 
@@ -70,6 +72,21 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
         if (videoRef.current) {
             videoRef.current.pause();
             videoRef.current.currentTime = 0; // Reset to first frame
+            setIsPlaying(false);
+        }
+    };
+
+    // Touch handler for mobile - tap to toggle play
+    const handleTouchStart = (e) => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+                videoRef.current.currentTime = 0;
+                setIsPlaying(false);
+            } else {
+                videoRef.current.play().catch(e => console.log('Touch play error:', e));
+                setIsPlaying(true);
+            }
         }
     };
 
@@ -82,7 +99,8 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
             onClick={onClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className="relative group w-full h-[400px] rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-slate-900"
+            onTouchStart={handleTouchStart}
+            className="relative group w-full h-[280px] sm:h-[340px] md:h-[400px] rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-slate-900"
         >
             {/* Background Video (Always visible, paused on first frame by default) */}
             <div className="absolute inset-0 z-0">
@@ -120,12 +138,12 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
             )}
 
             {/* Content */}
-            <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-30 pointer-events-none">
+            <div className="absolute inset-0 p-5 sm:p-6 md:p-8 flex flex-col justify-end text-left z-30 pointer-events-none">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="text-3xl font-black text-white leading-tight mb-2 drop-shadow-lg">     
+                    <h3 className="text-2xl sm:text-2xl md:text-3xl font-black text-white leading-tight mb-1 sm:mb-2 drop-shadow-lg">
                         {title}
                     </h3>
-                    <p className="text-lg text-white/90 font-medium font-serif tracking-wide mb-6">       
+                    <p className="text-base sm:text-lg text-white/90 font-medium font-serif tracking-wide mb-4 sm:mb-6">
                         {author}
                     </p>
 
@@ -181,12 +199,12 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
         <div className="min-h-screen bg-slate-50 relative overflow-y-auto font-sans selection:bg-indigo-100">
             {/* Header Section */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <img src={logo} alt="St Johns Logo" className="h-12 w-auto object-contain" />     
+                <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <img src={logo} alt="St Johns Logo" className="h-10 sm:h-12 w-auto object-contain" />
                         <div>
-                            <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">Student Dashboard</p>
-                            <h1 className="text-xl font-bold text-slate-900">
+                            <p className="text-[10px] sm:text-xs text-slate-500 font-bold tracking-wider uppercase">Student Dashboard</p>
+                            <h1 className="text-lg sm:text-xl font-bold text-slate-900">
                                 Welcome, <span className="text-indigo-600">{user.name}</span>
                             </h1>
                         </div>
@@ -194,27 +212,27 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
                 </div>
             </div>
 
-            <main className="max-w-7xl mx-auto px-6 py-12">
+            <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-12">
                 {/* Continue Button */}
                 {continuePoint && (
                     <motion.button
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         onClick={() => onSelectBook && onSelectBook(continuePoint.bookId)}
-                        className="w-full mb-8 p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl text-white flex items-center justify-between shadow-lg hover:shadow-xl transition-shadow group"       
+                        className="w-full mb-4 sm:mb-8 p-3 sm:p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl text-white flex items-center justify-between shadow-lg hover:shadow-xl transition-shadow group"
                     >
-                        <div className="flex items-center gap-3">
-                            <PlayCircle className="w-8 h-8" />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <PlayCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                             <div className="text-left">
-                                <p className="text-sm opacity-80">Continue where you left off</p>
-                                <p className="text-lg font-bold">{BOOK_TITLES[continuePoint.bookId]}</p>  
+                                <p className="text-xs sm:text-sm opacity-80">Continue where you left off</p>
+                                <p className="text-base sm:text-lg font-bold">{BOOK_TITLES[continuePoint.bookId]}</p>
                             </div>
                         </div>
-                        <ArrowRight className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:translate-x-1 transition-transform" />
                     </motion.button>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                     {/* Book Cards */}
                     {books.map((book, index) => (
                         <BookCard
