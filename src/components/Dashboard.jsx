@@ -45,12 +45,11 @@ const ProgressRing = ({ percentage, size = 48, strokeWidth = 4 }) => {
     );
 };
 
-const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId, isFirstBook, hasAnyProgress }) => {
+const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFirstBook, hasAnyProgress }) => {
     const { getBookPercentage } = useProgress();
     const percentage = getBookPercentage(bookId);
     const showStartHere = isFirstBook && !hasAnyProgress;
     const videoRef = useRef(null);
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
     // Gradient overlays based on genre for text readability
     const overlays = {
@@ -61,25 +60,16 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
 
     const overlay = overlays[variant] || overlays['noir'];
 
-    // Custom filters for specific genres (only applied to static image)
-    const imageStyles = {
-        'noir': { filter: 'contrast(1.2) saturate(0.8) brightness(0.9) sepia(0.2)' },
-        'historical': { filter: 'sepia(0.2) contrast(1.1)' },
-        'sketch': { filter: 'brightness(1.05)' }
-    };
-
     const handleMouseEnter = () => {
         if (videoRef.current) {
-            videoRef.current.currentTime = 0;
             videoRef.current.play().catch(e => console.log('Hover play error:', e));
-            setIsVideoPlaying(true);
         }
     };
 
     const handleMouseLeave = () => {
         if (videoRef.current) {
             videoRef.current.pause();
-            setIsVideoPlaying(false);
+            videoRef.current.currentTime = 0; // Reset to first frame
         }
     };
 
@@ -92,22 +82,10 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
             onClick={onClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className="relative group w-full h-[400px] rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500"
+            className="relative group w-full h-[400px] rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-slate-900"
         >
-            {/* Static Image Background (Always Visible initially, faded when video plays maybe? No, video sits on top) */}
+            {/* Background Video (Always visible, paused on first frame by default) */}
             <div className="absolute inset-0 z-0">
-                <img 
-                    src={image} 
-                    alt={title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    style={imageStyles[variant]}
-                />
-            </div>
-
-            {/* Background Video (Fades in on hover) */}
-            <div 
-                className={`absolute inset-0 bg-slate-900 z-10 transition-opacity duration-500 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
-            >
                 {video && (
                     <video
                         ref={videoRef}
@@ -115,16 +93,14 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
                         playsInline
                         muted
                         loop
-                        className="absolute inset-0 w-full h-full object-cover"
+                        preload="auto"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                 )}
-                {/* Gradient Overlay applied to video too so text remains readable */}
-                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity pointer-events-none`} />
+                
+                {/* Gradient Overlay (Always visible for text readability) */}
+                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity pointer-events-none z-10`} />
             </div>
-            
-            {/* Gradient Overlay for Image (Only visible when video is NOT playing) */}
-             <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity z-1 pointer-events-none ${isVideoPlaying ? 'opacity-0' : 'opacity-90'}`} />
-
 
             {/* Progress Ring - Top Right */}
             <div className="absolute top-4 right-4 z-30 pointer-events-none">
@@ -179,7 +155,6 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'bug-muldoon',
             title: "Bug Muldoon",
             author: "Paul Shipton",
-            image: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80",
             video: "https://ggmdmiubcjnruiymzdze.supabase.co/storage/v1/object/public/book-assets/animations/Animated_Bug_Muldoon_Module_Card.mp4",
             icon: Bug,
             variant: "noir",
@@ -188,7 +163,6 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'number-the-stars',
             title: "Number the Stars",
             author: "Lois Lowry",
-            image: "https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?auto=format&fit=crop&w=800&q=80",
             video: "https://ggmdmiubcjnruiymzdze.supabase.co/storage/v1/object/public/book-assets/animations/Video_Generation_Based_on_Image.mp4",
             icon: Star,
             variant: "historical",
@@ -197,7 +171,6 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'sticks-and-stones',
             title: "Sticks and Stones",
             author: "Abby Cooper",
-            image: "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80",
             video: "https://ggmdmiubcjnruiymzdze.supabase.co/storage/v1/object/public/book-assets/animations/Animated_Positive_Words_Video_Ready.mp4",
             icon: Pencil,
             variant: "sketch",
