@@ -45,19 +45,44 @@ const ProgressRing = ({ percentage, size = 48, strokeWidth = 4 }) => {
     );
 };
 
-const BookCard = ({ title, author, image, onClick, delay, variant, bookId, isFirstBook, hasAnyProgress }) => {
+const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId, isFirstBook, hasAnyProgress }) => {
     const { getBookPercentage } = useProgress();
     const percentage = getBookPercentage(bookId);
     const showStartHere = isFirstBook && !hasAnyProgress;
+    const videoRef = React.useRef(null);
+    const [isVideoLoaded, setIsVideoLoaded] = React.useState(false);
     
     // Gradient overlays based on genre for text readability
     const overlays = {
-        'noir': "from-emerald-900/90 to-slate-900/40",
-        'historical': "from-blue-900/90 to-amber-900/40",
-        'sketch': "from-orange-600/90 to-pink-600/40"
+        'noir': "from-black/95 via-green-900/40 to-slate-900/30 mix-blend-multiply",
+        'historical': "from-blue-950/90 to-amber-900/30",
+        'sketch': "from-orange-700/90 to-purple-900/30"
     };
 
     const overlay = overlays[variant] || overlays['noir'];
+    
+    // Custom filters for specific genres (only applied to static image)
+    const imageStyles = {
+        'noir': { filter: 'contrast(1.2) saturate(0.8) brightness(0.9) sepia(0.2)' },
+        'historical': { filter: 'sepia(0.2) contrast(1.1)' },
+        'sketch': { filter: 'brightness(1.05)' }
+    };
+
+    const handleVideoClick = () => {
+        if (videoRef.current) {
+            // Unmute and play
+            videoRef.current.muted = false;
+            videoRef.current.play().catch(e => {
+                console.log('Video play error:', e);
+                // Fallback: if play fails (e.g. user gesture required issues?), just navigate
+                onClick();
+            });
+        }
+    };
+
+    const handleVideoEnd = () => {
+        if (onClick) onClick();
+    };
 
     return (
         <motion.button
@@ -65,22 +90,30 @@ const BookCard = ({ title, author, image, onClick, delay, variant, bookId, isFir
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay, duration: 0.4 }}
             whileHover={{ scale: 1.03 }}
-            onClick={onClick}
+            onClick={handleVideoClick}
             className="relative group w-full h-[400px] rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500"
         >
-            {/* Background Image with Zoom Effect */}
-            <div className="absolute inset-0">
-                <img 
-                    src={image} 
-                    alt={title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+            {/* Background Video */}
+            <div className="absolute inset-0 bg-slate-900">
+                {video && (
+                    <video
+                        ref={videoRef}
+                        src={video}
+                        playsInline
+                        muted // Start muted (required for some browsers until interaction), we unmute on click
+                        onEnded={handleVideoEnd}
+                        className="absolute inset-0 w-full h-full object-cover z-0"
+                    />
+                )}
+                
+                {/* Fallback if no video? We assume video exists as per instruction */}
+
                 {/* Gradient Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-80 group-hover:opacity-90 transition-opacity`} />
+                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity z-20 pointer-events-none`} />
             </div>
 
             {/* Progress Ring - Top Right */}
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-30 pointer-events-none">
                 <ProgressRing percentage={percentage} />
             </div>
 
@@ -90,14 +123,14 @@ const BookCard = ({ title, author, image, onClick, delay, variant, bookId, isFir
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: delay + 0.3, type: 'spring' }}
-                    className="absolute top-4 left-4 z-10 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg"
+                    className="absolute top-4 left-4 z-30 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg pointer-events-none"
                 >
                     Start Here
                 </motion.div>
             )}
 
             {/* Content */}
-            <div className="absolute inset-0 p-8 flex flex-col justify-end text-left">
+            <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-30 pointer-events-none">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     <h3 className="text-3xl font-black text-white leading-tight mb-2 drop-shadow-lg">
                         {title}
@@ -133,6 +166,7 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             title: "Bug Muldoon",
             author: "Paul Shipton",
             image: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80",
+            video: "/animations/Animated_Bug_Muldoon_Module_Card.mp4",
             icon: Bug,
             variant: "noir",
         },
@@ -140,7 +174,8 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             id: 'number-the-stars',
             title: "Number the Stars",
             author: "Lois Lowry",
-            image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80",
+            image: "https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?auto=format&fit=crop&w=800&q=80",
+            video: "/animations/Video_Generation_Based_on_Image.mp4",
             icon: Star,
             variant: "historical",
         },
@@ -149,6 +184,7 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             title: "Sticks and Stones",
             author: "Abby Cooper",
             image: "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80",
+            video: "/animations/Animated_Positive_Words_Video_Ready.mp4",
             icon: Pencil,
             variant: "sketch",
         }
