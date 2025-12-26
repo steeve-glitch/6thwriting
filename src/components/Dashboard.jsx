@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Bug, Pencil, ArrowRight, CheckCircle, PlayCircle } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
@@ -49,9 +49,9 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
     const { getBookPercentage } = useProgress();
     const percentage = getBookPercentage(bookId);
     const showStartHere = isFirstBook && !hasAnyProgress;
-    const videoRef = React.useRef(null);
-    const [isVideoLoaded, setIsVideoLoaded] = React.useState(false);
-    
+    const videoRef = useRef(null);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
     // Gradient overlays based on genre for text readability
     const overlays = {
         'noir': "from-black/95 via-green-900/40 to-slate-900/30 mix-blend-multiply",
@@ -60,7 +60,7 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
     };
 
     const overlay = overlays[variant] || overlays['noir'];
-    
+
     // Custom filters for specific genres (only applied to static image)
     const imageStyles = {
         'noir': { filter: 'contrast(1.2) saturate(0.8) brightness(0.9) sepia(0.2)' },
@@ -68,20 +68,19 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
         'sketch': { filter: 'brightness(1.05)' }
     };
 
-    const handleVideoClick = () => {
+    const handleMouseEnter = () => {
         if (videoRef.current) {
-            // Unmute and play
-            videoRef.current.muted = false;
-            videoRef.current.play().catch(e => {
-                console.log('Video play error:', e);
-                // Fallback: if play fails (e.g. user gesture required issues?), just navigate
-                onClick();
-            });
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(e => console.log('Hover play error:', e));
+            setIsVideoPlaying(true);
         }
     };
 
-    const handleVideoEnd = () => {
-        if (onClick) onClick();
+    const handleMouseLeave = () => {
+        if (videoRef.current) {
+            videoRef.current.pause();
+            setIsVideoPlaying(false);
+        }
     };
 
     return (
@@ -90,27 +89,42 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay, duration: 0.4 }}
             whileHover={{ scale: 1.03 }}
-            onClick={handleVideoClick}
+            onClick={onClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             className="relative group w-full h-[400px] rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500"
         >
-            {/* Background Video */}
-            <div className="absolute inset-0 bg-slate-900">
+            {/* Static Image Background (Always Visible initially, faded when video plays maybe? No, video sits on top) */}
+            <div className="absolute inset-0 z-0">
+                <img 
+                    src={image} 
+                    alt={title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    style={imageStyles[variant]}
+                />
+            </div>
+
+            {/* Background Video (Fades in on hover) */}
+            <div 
+                className={`absolute inset-0 bg-slate-900 z-10 transition-opacity duration-500 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
+            >
                 {video && (
                     <video
                         ref={videoRef}
                         src={video}
                         playsInline
-                        muted // Start muted (required for some browsers until interaction), we unmute on click
-                        onEnded={handleVideoEnd}
-                        className="absolute inset-0 w-full h-full object-cover z-0"
+                        muted
+                        loop
+                        className="absolute inset-0 w-full h-full object-cover"
                     />
                 )}
-                
-                {/* Fallback if no video? We assume video exists as per instruction */}
-
-                {/* Gradient Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity z-20 pointer-events-none`} />
+                {/* Gradient Overlay applied to video too so text remains readable */}
+                <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity pointer-events-none`} />
             </div>
+            
+            {/* Gradient Overlay for Image (Only visible when video is NOT playing) */}
+             <div className={`absolute inset-0 bg-gradient-to-t ${overlay} opacity-90 transition-opacity z-1 pointer-events-none ${isVideoPlaying ? 'opacity-0' : 'opacity-90'}`} />
+
 
             {/* Progress Ring - Top Right */}
             <div className="absolute top-4 right-4 z-30 pointer-events-none">
@@ -132,10 +146,10 @@ const BookCard = ({ title, author, image, video, onClick, delay, variant, bookId
             {/* Content */}
             <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-30 pointer-events-none">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="text-3xl font-black text-white leading-tight mb-2 drop-shadow-lg">
+                    <h3 className="text-3xl font-black text-white leading-tight mb-2 drop-shadow-lg">     
                         {title}
                     </h3>
-                    <p className="text-lg text-white/90 font-medium font-serif tracking-wide mb-6">
+                    <p className="text-lg text-white/90 font-medium font-serif tracking-wide mb-6">       
                         {author}
                     </p>
 
@@ -196,7 +210,7 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <img src={logo} alt="St Johns Logo" className="h-12 w-auto object-contain" />
+                        <img src={logo} alt="St Johns Logo" className="h-12 w-auto object-contain" />     
                         <div>
                             <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">Student Dashboard</p>
                             <h1 className="text-xl font-bold text-slate-900">
@@ -214,13 +228,13 @@ const Dashboard = ({ user, onSelectBook, onOpenLibrary }) => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         onClick={() => onSelectBook && onSelectBook(continuePoint.bookId)}
-                        className="w-full mb-8 p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl text-white flex items-center justify-between shadow-lg hover:shadow-xl transition-shadow group"
+                        className="w-full mb-8 p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl text-white flex items-center justify-between shadow-lg hover:shadow-xl transition-shadow group"       
                     >
                         <div className="flex items-center gap-3">
                             <PlayCircle className="w-8 h-8" />
                             <div className="text-left">
                                 <p className="text-sm opacity-80">Continue where you left off</p>
-                                <p className="text-lg font-bold">{BOOK_TITLES[continuePoint.bookId]}</p>
+                                <p className="text-lg font-bold">{BOOK_TITLES[continuePoint.bookId]}</p>  
                             </div>
                         </div>
                         <ArrowRight className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" />
