@@ -8,10 +8,21 @@ const ActivityLayout = ({
     rightPanel, 
     accentColor = 'bg-blue-600', 
     bookTitle = 'Text',
-    theme = {} 
+    theme = {},
+    isTextCollapsed: controlledCollapsed,
+    onToggleTextCollapsed
 }) => {
-    const [isTextCollapsed, setIsTextCollapsed] = useState(false);
+    const [internalCollapsed, setInternalCollapsed] = useState(false);
     const [mobileTab, setMobileTab] = useState('activity'); // 'text' or 'activity'
+
+    const isTextCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+    const handleToggleText = () => {
+        if (onToggleTextCollapsed) {
+            onToggleTextCollapsed(!isTextCollapsed);
+        } else {
+            setInternalCollapsed(!isTextCollapsed);
+        }
+    };
 
     // Theme defaults
     const {
@@ -44,7 +55,7 @@ const ActivityLayout = ({
                 <div className="flex items-center gap-3">
                     {/* Text Panel Toggle */}
                     <button
-                        onClick={() => setIsTextCollapsed(!isTextCollapsed)}
+                        onClick={handleToggleText}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all
                             ${isTextCollapsed
                                 ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
@@ -100,12 +111,12 @@ const ActivityLayout = ({
                                 </div>
                                 <div className="flex-1 flex items-center justify-center">
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}> 
                                         {bookTitle}
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => setIsTextCollapsed(false)}
+                                    onClick={() => handleToggleText()}
                                     className="w-10 h-10 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600 flex items-center justify-center transition-colors"
                                     title="Show Text"
                                 >
@@ -168,7 +179,7 @@ const ActivityLayout = ({
                 </div>
 
                 {/* Mobile Tab Bar */}
-                <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-2 safe-area-pb">
+                <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-2 safe-area-pb"> 
                     <div className="flex gap-2">
                         <button
                             onClick={() => setMobileTab('text')}

@@ -8,7 +8,7 @@ import HighlightModal from './HighlightModal';
 import AiAssistant from '../AiAssistant';
 import InstructionBar from '../InstructionBar';
 import { useProgress } from '../../context/ProgressContext';
-import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, Search } from 'lucide-react';
+import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, Search, BookOpen, ArrowRight } from 'lucide-react';
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -45,6 +45,10 @@ const BugMuldoonModule = ({ onBack, userName }) => {
     const [isAiOpen, setIsAiOpen] = useState(false);
     const [highlights, setHighlights] = useState([]);
     const [activityLevel, setActivityLevel] = useState(1);
+    
+    // New state for reading focus
+    const [hasStarted, setHasStarted] = useState(false);
+    const [isTextCollapsed, setIsTextCollapsed] = useState(false);
 
     const completedTabs = {
         scramble: isTabComplete(BOOK_ID, 'scramble'),
@@ -85,6 +89,11 @@ const BugMuldoonModule = ({ onBack, userName }) => {
         }
     };
 
+    const handleStartActivities = () => {
+        setHasStarted(true);
+        setIsTextCollapsed(true);
+    };
+
 
     // Chapter content
     const chapterContent = `
@@ -120,7 +129,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
 
     // Sentence expansion data
     const sentenceKernel = "The fly sat.";
-    const authorSentence = "He sat on the edge of the desk, rubbing his front legs together nervously.";
+    const authorSentence = "He sat on the edge of the desk, rubbing his front legs together nervously.";  
 
     // Handle text selection for highlighting
     const handleHighlight = ({ text }) => {
@@ -170,13 +179,31 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
             case 'peel':
                 return "Student is writing a PEEL paragraph analyzing how Shipton uses humor and detective tropes.";
             case 'expand':
-                return `Student is practicing 'Showing, not Telling' by expanding: "${sentenceKernel}".`;
+                return `Student is practicing 'Showing, not Telling' by expanding: "${sentenceKernel}".`; 
             default:
                 return "";
         }
     };
 
-
+    // Initial "Read First" View
+    const renderWelcomeScreen = () => (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                <BookOpen className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 mb-4">Read the Story First!</h2>
+            <p className="text-lg text-slate-600 max-w-md mb-8">
+                Take your time to read the text on the left. When you're ready, we'll start the detective work!
+            </p>
+            <button
+                onClick={handleStartActivities}
+                className="group flex items-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+            >
+                Start Activities
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </button>
+        </div>
+    );
 
     return (
         <>
@@ -184,6 +211,8 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                 onBack={onBack}
                 accentColor="bg-green-600"
                 bookTitle="Bug Muldoon"
+                isTextCollapsed={isTextCollapsed}
+                onToggleTextCollapsed={setIsTextCollapsed}
                 theme={{
                     mainBg: 'bg-slate-900 bg-noir-pattern',
                     panelBg: 'bg-[#fdfbf6]', // Manila folder color
@@ -206,6 +235,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                     />
                 }
                 rightPanel={
+                    !hasStarted ? renderWelcomeScreen() : (
                     <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
                         {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
@@ -221,7 +251,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-2
                                             ${isActive ? 'bg-white text-emerald-600 shadow-sm ring-2 ring-emerald-200' : 'text-slate-500 hover:text-slate-700'}
-                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}
+                                            ${!isPreviousComplete && !isCompleted ? 'opacity-50' : ''}`}  
                                     >
                                         {isCompleted ? (
                                             <div className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center">
@@ -298,7 +328,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                                         )}
                                     </div>
 
-                                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">  
                                         <p className="text-sm text-green-800">
                                             <strong>Inquiry Focus:</strong> How does the juxtaposition of a serious detective voice with a garden setting create humor?
                                         </p>
@@ -325,7 +355,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                                     onComplete={(paragraph) => {
                                         console.log('PEEL complete:', paragraph);
                                         handleTabComplete('peel');
-                                        // PEEL Builder has its own completion screen, so we might not auto-advance immediately, 
+                                        // PEEL Builder has its own completion screen, so we might not auto-advance immediately,
                                         // or we let the user click "Next Activity" if we added one there.
                                         // For now, tracking completion is good.
                                     }}
@@ -353,6 +383,7 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                             )}
                         </div>
                     </div>
+                    )
                 }
             />
 
