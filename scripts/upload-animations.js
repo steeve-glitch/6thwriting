@@ -1,98 +1,77 @@
+
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
-// Setup paths
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.join(__dirname, '..'); // Assuming script is in lit-companion/scripts
-const animationsDir = path.join(projectRoot, '../animations'); // D:/lit-apps/6th-grade-writing/animations
+// Load env vars explicitly from the parent directory
+// logic assumes script is run from inside 'animations' or root, but looking for .env in lit-companion
+const ENV_PATH = path.resolve('D:/lit-apps/6th-grade-writing/lit-companion/.env');
+dotenv.config({ path: ENV_PATH });
 
-// Load .env from lit-companion root
-dotenv.config({ path: path.join(projectRoot, '.env') });
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !serviceKey) {
-    console.error('Error: VITE_SUPABASE_URL or SUPABASE_SERVICE_KEY not found in .env');
-    process.exit(1);
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Missing Supabase URL or Service Key. Checked path:', ENV_PATH);
+  process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, serviceKey);
-const BUCKET_NAME = 'book-assets';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const FILES_MAP = [
-    { 
-        filename: 'Animated_Bug_Muldoon_Module_Card.mp4', 
-        targetName: 'bug-muldoon-card.mp4' 
-    },
-    { 
-        filename: 'Animated_Positive_Words_Video_Ready.mp4', 
-        targetName: 'sticks-and-stones-card.mp4' 
-    },
-    { 
-        filename: 'Video_Generation_Based_on_Image.mp4', 
-        targetName: 'number-the-stars-card.mp4' 
-    }
+// We are running this script from the 'animations' workspace, but the files are in 'lit-companion/public/animations'
+// Actually, let's just upload the files from the 'lit-companion/public/animations' folder we just populated.
+const SOURCE_DIR = 'D:/lit-apps/6th-grade-writing/lit-companion/public/animations';
+const BUCKET = 'book-assets';
+const STORAGE_PATH = 'animations';
+
+const files = [
+  'Animated_Bug_Muldoon_Module_Card.mp4', // bug-muldoon-card.mp4
+  'Animated_Positive_Words_Video_Ready.mp4', // sticks-and-stones-card.mp4
+  'Video_Generation_Based_on_Image.mp4' // number-the-stars-card.mp4
 ];
 
-async function upload() {
-    console.log('Starting upload process...');
+// Map local filenames to the specific remote filenames expected by the app (or just overwrite the same names)
+// The dashboard used specific names before:
+// bug-muldoon-card.mp4
+// number-the-stars-card.mp4
+// sticks-and-stones-card.mp4
+// I should probably rename them on upload to match these cleaner names, or update the dashboard to use the new names. 
+// Updating the dashboard is safer as it avoids confusion about what file is what content. I will keep the new names.
 
-    // 1. Ensure bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    if (listError) {
-        console.error('Error listing buckets:', listError);
-        return;
-    }
+async function uploadFile(filename) {
+  const filePath = path.join(SOURCE_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    console.error(`File not found: ${filePath}`);
+    return;
+  }
 
-    const bucket = buckets.find(b => b.name === BUCKET_NAME);
-    if (!bucket) {
-        console.log(`Bucket '${BUCKET_NAME}' not found. Creating...`);
-        const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-            public: true,
-            allowedMimeTypes: ['video/mp4', 'image/png', 'image/jpeg']
-        });
-        if (createError) {
-            console.error('Error creating bucket:', createError);
-            return;
-        }
-        console.log('Bucket created.');
-    } else {
-        console.log(`Bucket '${BUCKET_NAME}' exists.`);
-    }
+  const fileBuffer = fs.readFileSync(filePath);
+  // We upload with the exact filename
+  const targetPath = `${STORAGE_PATH}/${filename}`;
 
-    // 2. Upload files
-    for (const file of FILES_MAP) {
-        const localPath = path.join(animationsDir, file.filename);
-        if (!fs.existsSync(localPath)) {
-            console.error(`File not found: ${localPath}`);
-            continue;
-        }
+  console.log(`Uploading ${filename} to ${BUCKET}/${targetPath}...`);
 
-        console.log(`Uploading ${file.filename}...`);
-        const fileContent = fs.readFileSync(localPath);
+  const { data, error } = await supabase
+    .storage
+    .from(BUCKET)
+    .upload(targetPath, fileBuffer, {
+      contentType: 'video/mp4',
+      upsert: true
+    });
 
-        const { error: uploadError } = await supabase.storage
-            .from(BUCKET_NAME)
-            .upload(`animations/${file.targetName}`, fileContent, {
-                contentType: 'video/mp4',
-                upsert: true
-            });
-
-        if (uploadError) {
-            console.error(`Failed to upload ${file.filename}:`, uploadError);
-        } else {
-            const { data } = supabase.storage
-                .from(BUCKET_NAME)
-                .getPublicUrl(`animations/${file.targetName}`);
-            
-            console.log(`Uploaded! Public URL: ${data.publicUrl}`);
-        }
-    }
+  if (error) {
+    console.error(`Error uploading ${filename}:`, error.message);
+  } else {
+    console.log(`Success! Uploaded ${filename}`);
+  }
 }
 
-upload();
+async function main() {
+  for (const file of files) {
+    await uploadFile(file);
+  }
+}
+
+main();
