@@ -5,10 +5,37 @@ import SentenceBuilder from './SentenceBuilder';
 import PeelBuilder from './PeelBuilder';
 import SentenceExpander from './SentenceExpander';
 import HighlightModal from './HighlightModal';
+import GuidedReadingPanel from './GuidedReadingPanel';
 import AiAssistant from '../AiAssistant';
 import InstructionBar from '../InstructionBar';
 import { useProgress } from '../../context/ProgressContext';
 import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, BookOpen, ArrowRight } from 'lucide-react';
+
+// Guided reading passages with hints
+const GUIDED_PASSAGES = [
+    {
+        id: 'passage-1',
+        text: "Actually, there are a lot of words for people like me.",
+        hint: "What's the tone of this opening?"
+    },
+    {
+        id: 'passage-2',
+        text: "It's the one that's supposed to be nice. Special.",
+        hint: "Why does Elyse hate this word the most?"
+    },
+    {
+        id: 'passage-3',
+        text: "their voices trailing off as they stare at my arms",
+        hint: "What does this body language reveal about how adults treat Elyse?"
+    },
+    {
+        id: 'passage-4',
+        text: "the words clumsy and anxious are blooming just above my left wrist",
+        hint: "How do the words on her skin reflect her emotional state?"
+    }
+];
+
+const INQUIRY_QUESTION = "How does the author show Elyse's internal struggle with being 'different'?";
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -26,7 +53,7 @@ const INSTRUCTIONS = {
         tip: "Read the words first. Think about what makes sense!"
     },
     reading: {
-        instruction: "Find clues in the story! Highlight important words or phrases.",
+        instruction: "Find evidence in the text! Highlight important words or phrases.",
         tip: "Click and drag to select text on the left side."
     },
     peel: {
@@ -39,11 +66,62 @@ const INSTRUCTIONS = {
     }
 };
 
+// Glossary definitions for bilingual support
+const GLOSSARY_TERMS = [
+    { term: "trailing off", definition: "Becoming quieter and quieter until silence." },
+    { term: "jagged", definition: "Having rough, sharp points; not smooth." },
+    { term: "font", definition: "A specific style of text or letters." },
+    { term: "anxious", definition: "Feeling very worried, nervous, or uneasy." },
+    { term: "clumsy", definition: "Awkward in movement; likely to drop things or trip." },
+    { term: "weirdo", definition: "A word people use to be mean to someone who is different." },
+    { term: "blooming", definition: "Appearing or growing, like a flower opening up." }
+];
+
+const WRITING_PROMPTS = [
+    {
+        id: 'tone',
+        label: 'Analyze the Tone',
+        question: "How does Elyse feel about the labels people use?",
+        thesisBuilder: {
+            template: "Elyse's internal thoughts reveal her {emotion} about being labeled '{label}'.",
+            options: {
+                emotion: ["bitterness", "anger", "frustration"],
+                label: ["Special", "Freak", "Different"]
+            }
+        },
+        starters: {
+            point: ["The author conveys a tone of...", "Elyse's reaction to the word 'Special' shows..."],
+            evidence: ["She describes the word as...", "The text says..."],
+            explanation: ["This suggests that...", "By hating the 'nice' word, she shows..."],
+            link: ["This reveals that...", "Ultimately, the tone is..."]
+        }
+    },
+    {
+        id: 'imagery',
+        label: 'Analyze the Imagery',
+        question: "How do the words on her skin reflect her feelings?",
+        thesisBuilder: {
+            template: "The {adjective} font on her skin reflects her {feeling} mood.",
+            options: {
+                adjective: ["jagged", "dark blue", "blooming"],
+                feeling: ["anxious", "stormy", "painful"]
+            }
+        },
+        starters: {
+            point: ["The imagery of the words on her skin...", "The author connects her physical appearance to..."],
+            evidence: ["The text describes the words as...", "For instance..."],
+            explanation: ["The word 'jagged' implies...", "This visual description helps us understand..."],
+            link: ["This imagery creates...", "Therefore, the supernatural element..."]
+        }
+    }
+];
+
 const SticksAndStonesModule = ({ onBack, userName }) => {
     const { markTabComplete, setLastTab, isTabComplete, getNextIncompleteTab } = useProgress();
     const [activeTab, setActiveTab] = useState('scramble');
     const [isAiOpen, setIsAiOpen] = useState(false);
-    const [highlights, setHighlights] = useState([]);
+    const [highlights, setHighlights] = useState([]); // For optional custom highlights
+    const [annotations, setAnnotations] = useState([]); // For guided passage analysis
     const [activityLevel, setActivityLevel] = useState(1);
 
     // New state for reading focus
@@ -60,9 +138,12 @@ const SticksAndStonesModule = ({ onBack, userName }) => {
     const [showHighlightModal, setShowHighlightModal] = useState(false);
     const [pendingHighlight, setPendingHighlight] = useState(null);
 
+    // State to hold pre-selected prompt from Evidence Preview
+    const [preSelectedPrompt, setPreSelectedPrompt] = useState(null);
+
     const tabs = [
         { id: 'scramble', label: 'Build Sentence', shortLabel: '1', icon: Move },
-        { id: 'reading', label: 'Find Clues', shortLabel: '2', icon: Highlighter },
+        { id: 'reading', label: 'Find Evidence', shortLabel: '2', icon: Highlighter },
         { id: 'peel', label: 'Write Paragraph', shortLabel: '3', icon: Layers },
         { id: 'expand', label: 'Add Details', shortLabel: '4', icon: Maximize2 }
     ];
@@ -98,15 +179,15 @@ const SticksAndStonesModule = ({ onBack, userName }) => {
     const chapterContent = `
 CHAPTER ONE
 
-Thereâ€™s a word for people like me.
+There’s a word for people like me.
 Actually, there are a lot of words for people like me.
 Freak. Weirdo. Monster.
-Iâ€™ve heard them all.
+I’ve heard them all.
 
-But the word I hate the most isnâ€™t any of those. Itâ€™s the one thatâ€™s supposed to be nice.
+But the word I hate the most isn’t any of those. It’s the one that’s supposed to be nice.
 *Special.*
 
-Adults use it when they donâ€™t know what else to say. "Elyse is so... special," they tell my mom, their voices trailing off as they stare at my arms.
+Adults use it when they don’t know what else to say. "Elyse is so... special," they tell my mom, their voices trailing off as they stare at my arms.
 I look down at my skin. Today, the words *clumsy* and *anxious* are blooming just above my left wrist, in a jagged, dark blue font that matches my mood.
   `;
 
@@ -120,7 +201,7 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
     // PEEL quotes for guided mode
     const peelQuotes = [
         "Actually, there are a lot of words for people like me.",
-        "Itâ€™s the one thatâ€™s supposed to be nice. Special.",
+        "It’s the one that’s supposed to be nice. Special.",
         "their voices trailing off as they stare at my arms",
         "the words clumsy and anxious are blooming just above my left wrist"
     ];
@@ -153,11 +234,49 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
         setHighlights(prev => prev.filter(h => h.text !== highlight.text));
     };
 
+    // Handle guided passage annotation
+    const handleAnnotate = (annotationData) => {
+        setAnnotations(prev => {
+            const exists = prev.find(a => a.passageId === annotationData.passageId);
+            if (exists) {
+                return prev.map(a => a.passageId === annotationData.passageId ? annotationData : a);
+            }
+            return [...prev, annotationData];
+        });
+    };
+
+    // Remove annotation
+    const handleRemoveAnnotation = (passageId) => {
+        setAnnotations(prev => prev.filter(a => a.passageId !== passageId));
+    };
+
+    // Handle when student selects prompt from Evidence Preview and continues
+    const handleSelectPromptAndContinue = (selectedPrompt, evidence) => {
+        setPreSelectedPrompt(selectedPrompt);
+        handleTabComplete('reading');
+        advanceToNextTab('reading');
+    };
+
+    // Get all evidence for PEEL (annotations + custom highlights)
+    const getAllEvidence = () => {
+        const guidedEvidence = annotations.map(a => ({
+            text: a.text,
+            explanation: a.explanation,
+            source: 'guided'
+        }));
+        const customEvidence = highlights.map(h => ({
+            text: h.text,
+            explanation: h.explanation || '',
+            source: 'custom'
+        }));
+        return [...guidedEvidence, ...customEvidence];
+    };
+
     // Get activity label for AI context (using kid-friendly labels)
     const getActivityLabel = () => {
         switch (activeTab) {
             case 'scramble': return 'Build the Sentence';
-            case 'reading': return 'Find the Clues';
+            case 'reading': return 'Find Evidence';
             case 'peel': return 'Write Your Paragraph';
             case 'expand': return 'Add Details';
             default: return 'Reading Activity';
@@ -231,13 +350,14 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                         chapter="Chapter 1: The Hallway"
                         content={chapterContent.trim()}
                         highlights={highlights}
+                        glossary={GLOSSARY_TERMS}
                         onHighlight={activeTab === 'reading' ? handleHighlight : undefined}
                         onHighlightClick={handleHighlightClick}
                     />
                 }
                 rightPanel={
                     !hasStarted ? renderWelcomeScreen() : (
-                    <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
+                    <div className="flex flex-col h-full gap-4">
                         {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
                             {tabs.map((tab, index) => {
@@ -292,65 +412,31 @@ I look down at my skin. Today, the words *clumsy* and *anxious* are blooming jus
                                 </>
                             )}
 
-                            {/* Close Reading */}
+                            {/* Close Reading - Guided */}
                             {activeTab === 'reading' && (
-                                <div className="space-y-6 flex flex-col h-full">
-                                    <InstructionBar
-                                        instruction={INSTRUCTIONS.reading.instruction}
-                                        tip={INSTRUCTIONS.reading.tip}
+                                <div className="flex flex-col h-full">
+                                    <GuidedReadingPanel
+                                        passages={GUIDED_PASSAGES}
+                                        annotations={annotations}
+                                        onAnnotate={handleAnnotate}
+                                        onRemoveAnnotation={handleRemoveAnnotation}
+                                        inquiryQuestion={INQUIRY_QUESTION}
                                         accentColor="orange"
+                                        customHighlights={highlights}
+                                        onEnableHighlighting={() => setIsTextCollapsed(false)}
+                                        minRequired={3}
+                                        writingPrompts={WRITING_PROMPTS}
+                                        onSelectPromptAndContinue={handleSelectPromptAndContinue}
                                     />
-
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex-1">
-                                        <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
-                                            <PenTool className="w-4 h-4" /> Your Evidence
-                                        </h4>
-                                        {highlights.length === 0 ? (
-                                            <p className="text-sm text-yellow-600 italic">Select text in the left panel to highlight it.</p>
-                                        ) : (
-                                            <ul className="space-y-3">
-                                                {highlights.map((h, i) => {
-                                                    const config = CATEGORY_CONFIG[h.category] || { color: 'slate', label: 'Note' };
-                                                    return (
-                                                        <li key={i} className="bg-white p-3 rounded-lg border border-yellow-100 space-y-2">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <span className="text-sm text-slate-700 font-medium">"{h.text}"</span>
-                                                                <span className={`text-xs px-2 py-0.5 rounded-full bg-${config.color}-100 text-${config.color}-700`}>
-                                                                    {config.label}
-                                                                </span>
-                                                            </div>
-                                                            {h.explanation && (
-                                                                <p className="text-xs text-slate-500 italic">{h.explanation}</p>
-                                                            )}
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                                        <p className="text-sm text-orange-800">
-                                            <strong>Inquiry Focus:</strong> Why is "Special" worse than "Freak"? How does the author subvert our expectations?
-                                        </p>
-                                    </div>
-
-                                    <button
-                                        onClick={() => {
-                                            handleTabComplete('reading');
-                                            advanceToNextTab('reading');
-                                        }}
-                                        className="w-full py-3 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 transition-colors shadow-sm"
-                                    >
-                                        Complete Investigation & Continue
-                                    </button>
                                 </div>
                             )}
 
                             {/* PEEL Writing */}
                             {activeTab === 'peel' && (
                                 <PeelBuilder
-                                    quotes={peelQuotes}
+                                    evidence={getAllEvidence()}
+                                    writingPrompts={WRITING_PROMPTS}
+                                    preSelectedPrompt={preSelectedPrompt}
                                     accentColor="orange"
                                     level={activityLevel}
                                     onComplete={(paragraph) => {

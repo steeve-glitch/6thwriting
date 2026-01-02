@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, PanelLeft, Eye, EyeOff, BookText, PenTool } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, BookOpen, ChevronRight, Eye, EyeOff, BookText, PenTool } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ActivityLayout = ({ 
@@ -14,8 +14,23 @@ const ActivityLayout = ({
 }) => {
     const [internalCollapsed, setInternalCollapsed] = useState(false);
     const [mobileTab, setMobileTab] = useState('activity'); // 'text' or 'activity'
+    const [showExpandHint, setShowExpandHint] = useState(false);
+    const [hasShownHint, setHasShownHint] = useState(false);
 
     const isTextCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+
+    // Show hint when panel first collapses
+    useEffect(() => {
+        if (isTextCollapsed && !hasShownHint) {
+            setShowExpandHint(true);
+            setHasShownHint(true);
+            // Hide hint after 3 seconds
+            const timer = setTimeout(() => {
+                setShowExpandHint(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isTextCollapsed, hasShownHint]);
     const handleToggleText = () => {
         if (onToggleTextCollapsed) {
             onToggleTextCollapsed(!isTextCollapsed);
@@ -104,25 +119,45 @@ const ActivityLayout = ({
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             className="h-full relative z-10 flex flex-col"
                         >
-                            {/* Collapsed Strip */}
-                            <div className={`h-full ${panelBg} rounded-2xl shadow-sm border ${borderColor} flex flex-col items-center py-4 gap-3`}>
-                                <div className={`w-10 h-10 rounded-xl ${accentColor} flex items-center justify-center`}>
+                            {/* Collapsed Strip - Fully Clickable */}
+                            <button
+                                onClick={handleToggleText}
+                                className={`h-full w-full ${panelBg} rounded-2xl shadow-sm border ${borderColor} flex flex-col items-center py-4 gap-3
+                                    cursor-pointer transition-all duration-200
+                                    hover:shadow-md hover:border-indigo-300 hover:bg-indigo-50/50
+                                    active:scale-[0.98] group relative`}
+                                title="Click to show story"
+                            >
+                                {/* Animated Hint Tooltip */}
+                                <AnimatePresence>
+                                    {showExpandHint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            className="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50"
+                                        >
+                                            <div className="bg-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                                Tap to show story
+                                                <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-indigo-600" />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                <div className={`w-10 h-10 rounded-xl ${accentColor} flex items-center justify-center transition-transform group-hover:scale-110`}>
                                     <BookOpen className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="flex-1 flex items-center justify-center">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}> 
+                                    <span className="text-xs font-bold text-slate-400 group-hover:text-indigo-500 uppercase tracking-widest transition-colors"
+                                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
                                         {bookTitle}
                                     </span>
                                 </div>
-                                <button
-                                    onClick={() => handleToggleText()}
-                                    className="w-10 h-10 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600 flex items-center justify-center transition-colors"
-                                    title="Show Text"
-                                >
-                                    <PanelLeft className="w-5 h-5" />
-                                </button>
-                            </div>
+                                <div className="w-10 h-10 rounded-xl bg-indigo-100 group-hover:bg-indigo-200 text-indigo-600 flex items-center justify-center transition-all">
+                                    <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                                </div>
+                            </button>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -134,7 +169,7 @@ const ActivityLayout = ({
                         ${isTextCollapsed ? 'flex-1' : 'w-7/12'}`}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
-                    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                    <div className="flex-1 p-4 overflow-y-auto">
                         {rightPanel}
                     </div>
                 </motion.div>

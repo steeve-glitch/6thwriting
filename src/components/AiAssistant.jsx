@@ -14,25 +14,28 @@ const AiAssistant = ({ context, isOpen, onToggle }) => {
         if (book.includes("Bug Muldoon")) {
             return {
                 color: 'from-emerald-600 to-teal-700',
-                icon: Bug,
+                icon: '/images/bug.png',
                 name: 'Detective Muldoon AI',
-                bg: 'bg-emerald-50'
+                bg: 'bg-emerald-50',
+                glow: 'animate-glow-emerald'
             };
         }
         if (book.includes("Number the Stars")) {
             return {
                 color: 'from-blue-600 to-indigo-700',
-                icon: Star,
+                icon: '/images/star.png',
                 name: 'Resistance Guide AI',
-                bg: 'bg-blue-50'
+                bg: 'bg-blue-50',
+                glow: 'animate-glow-blue'
             };
         }
         if (book.includes("Sticks and Stones")) {
             return {
                 color: 'from-orange-500 to-pink-600',
-                icon: Pencil,
+                icon: '/images/SAS.png',
                 name: 'Writing Coach AI',
-                bg: 'bg-orange-50'
+                bg: 'bg-orange-50',
+                glow: 'animate-glow-orange'
             };
         }
         return { color: 'from-indigo-500 to-purple-600', icon: Bot, name: 'Learning Companion', bg: 'bg-slate-50' };
@@ -122,9 +125,20 @@ const AiAssistant = ({ context, isOpen, onToggle }) => {
                         animate={{ scale: 1 }}
                         whileHover={{ scale: 1.1 }}
                         onClick={handleToggle}
-                        className={`w-16 h-16 bg-gradient-to-r ${theme.color} rounded-full shadow-lg flex items-center justify-center text-white cursor-pointer hover:shadow-xl transition-all`}
+                        className={`flex items-center justify-center cursor-pointer transition-all rounded-full ${typeof theme.icon === 'string'
+                                ? `w-20 h-20 bg-gradient-to-br ${theme.color} shadow-xl ${theme.glow || ''}`
+                                : `w-16 h-16 bg-gradient-to-r ${theme.color} shadow-lg hover:shadow-xl text-white`
+                            }`}
                     >
-                        <Icon className="w-8 h-8 animate-pulse" />
+                        {typeof theme.icon === 'string' ? (
+                            <img
+                                src={`${theme.icon}?v=${new Date().getTime()}`}
+                                className="w-16 h-16 object-cover rounded-full"
+                                alt={theme.name}
+                            />
+                        ) : (
+                            <Icon className="w-8 h-8 animate-pulse" />
+                        )}
                         {/* Notification Dot */}
                         <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
                     </motion.button>
@@ -144,7 +158,11 @@ const AiAssistant = ({ context, isOpen, onToggle }) => {
                         <div className={`bg-gradient-to-r ${theme.color} p-4 flex items-center justify-between text-white`}>
                             <div className="flex items-center gap-3">
                                 <div className="bg-white/20 p-2 rounded-full">
-                                    <Icon className="w-5 h-5" />
+                                    {typeof theme.icon === 'string' ? (
+                                        <img src={theme.icon} className="w-6 h-6 object-contain" alt={theme.name} />
+                                    ) : (
+                                        <Icon className="w-5 h-5" />
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-sm">{theme.name}</h3>
@@ -164,11 +182,10 @@ const AiAssistant = ({ context, isOpen, onToggle }) => {
                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                                            msg.role === 'user'
-                                            ? `bg-gradient-to-r ${theme.color} text-white rounded-tr-sm`  
+                                        className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                                            ? `bg-gradient-to-r ${theme.color} text-white rounded-tr-sm`
                                             : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm'
-                                        }`}
+                                            }`}
                                     >
                                         {msg.text}
                                     </div>
@@ -193,12 +210,12 @@ const AiAssistant = ({ context, isOpen, onToggle }) => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Ask me anything..."
-                                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-700 transition-all"        
+                                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-700 transition-all"
                             />
                             <button
                                 type="submit"
                                 disabled={!input.trim()}
-                                className={`p-2.5 rounded-xl text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 bg-gradient-to-r ${theme.color}`}  
+                                className={`p-2.5 rounded-xl text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 bg-gradient-to-r ${theme.color}`}
                             >
                                 <Send className="w-4 h-4" />
                             </button>

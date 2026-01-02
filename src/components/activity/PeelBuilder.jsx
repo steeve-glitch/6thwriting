@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Quote, MessageSquare, Link2, ChevronRight, ChevronLeft, Check, Sparkles, RotateCcw, Trophy, Copy, Eye, EyeOff, CheckCircle2, Circle, Lightbulb } from 'lucide-react';
+import { FileText, Quote, MessageSquare, Link2, ChevronRight, ChevronLeft, Check, Sparkles, RotateCcw, Trophy, Copy, Eye, EyeOff, CheckCircle2, Circle, Lightbulb, Target, MessageCircle, PenTool, LayoutTemplate } from 'lucide-react';
 import LevelSelector from './LevelSelector';
 
 // Model paragraph example that students can view
@@ -86,7 +86,71 @@ const STEPS = [
     }
 ];
 
-const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, onRequestAiFeedback }) => {
+const ThesisBuilder = ({ template, options, onChange, accentColor }) => {
+    const [selections, setSelections] = useState({});
+
+    // Parse template to identify slots {slotName}
+    const parts = template.split(/(\{[^}]+\})/g);
+
+    const handleSelect = (slot, value) => {
+        const newSelections = { ...selections, [slot]: value };
+        setSelections(newSelections);
+
+        // Reconstruct the full sentence
+        const sentence = parts.map(part => {
+            if (part.startsWith('{') && part.endsWith('}')) {
+                const key = part.slice(1, -1);
+                return newSelections[key] || `[${key}]`;
+            }
+            return part;
+        }).join('');
+        
+        onChange(sentence);
+    };
+
+    return (
+        <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div className="flex flex-wrap items-baseline gap-2 text-lg leading-relaxed text-slate-700">
+                {parts.map((part, idx) => {
+                    if (part.startsWith('{') && part.endsWith('}')) {
+                        const key = part.slice(1, -1);
+                        const availableOptions = options[key] || [];
+                        
+                        return (
+                            <div key={idx} className="relative inline-block">
+                                <select
+                                    className={`appearance-none bg-white border-b-2 border-${accentColor}-400 text-${accentColor}-700 font-bold py-1 px-3 pr-8 rounded focus:outline-none focus:bg-${accentColor}-50 cursor-pointer`}
+                                    value={selections[key] || ''}
+                                    onChange={(e) => handleSelect(key, e.target.value)}
+                                >
+                                    <option value="" disabled>Choose...</option>
+                                    {availableOptions.map((opt, i) => (
+                                        <option key={i} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        );
+                    }
+                    return <span key={idx}>{part}</span>;
+                })}
+            </div>
+            <p className="text-xs text-slate-500 italic text-center">
+                Select options to build your topic sentence.
+            </p>
+        </div>
+    );
+};
+
+const PeelBuilder = ({ quotes = [], evidence = [], writingPrompts = [], preSelectedPrompt = null, accentColor = 'sky', level = 1, onComplete, onRequestAiFeedback }) => {
+    // Support both old 'quotes' prop and new 'evidence' prop for backwards compatibility
+    const availableEvidence = evidence.length > 0
+        ? evidence
+        : quotes.map(q => ({ text: q, explanation: '', source: 'legacy' }));
+
+    // Use pre-selected prompt from Evidence Preview if provided
+    const [selectedPrompt, setSelectedPrompt] = useState(preSelectedPrompt);
+    const [useThesisBuilder, setUseThesisBuilder] = useState(true); // Default to builder if available
+
     const [currentStep, setCurrentStep] = useState(0);
     const [peelData, setPeelData] = useState({
         point: '',
@@ -118,11 +182,19 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
 
     const currentStepData = STEPS[currentStep];
 
+    // Determine active starters (default or context-specific)
+    const activeStarters = (selectedPrompt && selectedPrompt.starters && selectedPrompt.starters[currentStepData.id])
+        ? selectedPrompt.starters[currentStepData.id]
+        : currentStepData.starters;
+
     const validateStep = (stepId, value) => {
         if (activityLevel === 3) return true; // No validation in independent mode
 
         if (activityLevel === 1) {
-            if (stepId === 'point' && value.length < 15) return 'Your point needs to be at least 15 characters.';
+            if (stepId === 'point') {
+                if (value.includes('[') && value.includes(']')) return 'Please fill in all the blanks.';
+                if (value.length < 15) return 'Your point needs to be at least 15 characters.';
+            }
             if (stepId === 'evidence' && !value) return 'Please select a quote for your evidence.';
             if (stepId === 'explanation' && value.length < 25) return 'Explain your evidence in at least 25 characters.';
             if (stepId === 'link' && value.length < 15) return 'Your link needs to be at least 15 characters.';
@@ -182,7 +254,13 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
         setIsActivityComplete(false);
         setCopied(false);
         setErrors({});
+        // Don't reset selectedPrompt to allow retry on same mission
     };
+
+    const handleFullReset = () => {
+        handleReset();
+        setSelectedPrompt(null);
+    }
 
     const handleComplete = () => {
         setIsActivityComplete(true);
@@ -206,6 +284,36 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
     const buildParagraph = () => {
         return `${peelData.point} ${peelData.evidence ? `"${peelData.evidence}"` : ''} ${peelData.explanation} ${peelData.link}`;
     };
+
+    // Phase 1: Mission Selection
+    if (writingPrompts.length > 0 && !selectedPrompt) {
+        return (
+            <div className="space-y-6">
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-slate-800">Choose Your Writing Mission</h2>
+                    <p className="text-slate-600">What would you like to analyze today?</p>
+                </div>
+                <div className="grid gap-4">
+                    {writingPrompts.map((prompt) => (
+                        <button
+                            key={prompt.id}
+                            onClick={() => setSelectedPrompt(prompt)}
+                            className={`flex items-start gap-4 p-5 rounded-xl border-2 text-left transition-all hover:scale-[1.01]
+                                bg-white border-slate-200 hover:border-${accentColor}-300 hover:shadow-md`}
+                        >
+                            <div className={`p-3 rounded-full bg-${accentColor}-100 text-${accentColor}-600`}>
+                                <Target className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-lg mb-1">{prompt.label}</h3>
+                                <p className="text-slate-600 text-sm">{prompt.question}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     // Completion Celebration View
     if (isActivityComplete) {
@@ -256,11 +364,11 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
                 </div>
 
                 <button
-                    onClick={handleReset}
+                    onClick={handleFullReset}
                     className="w-full py-3 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                     <RotateCcw className="w-5 h-5" />
-                    Write Another Paragraph
+                    Choose a New Mission
                 </button>
             </motion.div>
         );
@@ -331,10 +439,28 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
 
     return (
         <div className="space-y-5">
-            {/* Level Selector */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-800">PEEL Paragraph</h2>
-                <LevelSelector level={activityLevel} onChange={setActivityLevel} accentColor={accentColor} />
+            {/* Header with Mission Banner */}
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-800">PEEL Paragraph</h2>
+                    <LevelSelector level={activityLevel} onChange={setActivityLevel} accentColor={accentColor} />
+                </div>
+                {selectedPrompt && (
+                    <div className={`flex items-center justify-between bg-${accentColor}-50 border border-${accentColor}-100 rounded-lg px-3 py-2`}>
+                        <div className="flex items-center gap-2">
+                            <Target className={`w-4 h-4 text-${accentColor}-600`} />
+                            <span className={`text-sm font-medium text-${accentColor}-800`}>
+                                Mission: {selectedPrompt.label}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={() => setSelectedPrompt(null)}
+                            className={`text-xs text-${accentColor}-600 hover:underline`}
+                        >
+                            Change
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Model Paragraph Toggle (Level 1 only) */}
@@ -371,7 +497,7 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
                                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">Point</span>
                                     <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">Evidence</span>
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Explanation</span>
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">Explanation</span>
                                     <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">Link</span>
                                 </div>
                             </motion.div>
@@ -427,27 +553,81 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
                             {React.createElement(currentStepData.icon, { className: 'w-5 h-5' })}
                             {currentStepData.label}
                         </h3>
-                        <p className="text-slate-500 text-sm mt-1">{currentStepData.description}</p>
+                        <p className="text-slate-500 text-sm mt-1">
+                            {/* Contextual description based on prompt */}
+                            {currentStepData.description}
+                            {selectedPrompt && currentStepData.id === 'point' && ` about: ${selectedPrompt.label}`}
+                        </p>
                     </div>
 
-                    {/* Evidence Step - Quote Selection */}
-                    {currentStepData.id === 'evidence' ? (
+                    {/* Thesis Builder Toggle (Point Step Only) */}
+                    {currentStepData.id === 'point' && selectedPrompt?.thesisBuilder && (
+                        <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
+                            <button
+                                onClick={() => setUseThesisBuilder(true)}
+                                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                                    ${useThesisBuilder ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                <LayoutTemplate className="w-3.5 h-3.5" />
+                                Build My Point
+                            </button>
+                            <button
+                                onClick={() => setUseThesisBuilder(false)}
+                                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                                    ${!useThesisBuilder ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                <PenTool className="w-3.5 h-3.5" />
+                                Write My Own
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step Content */}
+                    {currentStepData.id === 'point' && useThesisBuilder && selectedPrompt?.thesisBuilder ? (
+                        <ThesisBuilder
+                            template={selectedPrompt.thesisBuilder.template}
+                            options={selectedPrompt.thesisBuilder.options}
+                            onChange={(val) => handleInputChange('point', val)}
+                            accentColor={accentColor}
+                        />
+                    ) : currentStepData.id === 'evidence' ? (
                         <div className="space-y-3">
-                            {activityLevel === 1 && quotes.length > 0 ? (
+                            {activityLevel === 1 && availableEvidence.length > 0 ? (
                                 <>
-                                    <p className="text-sm text-slate-600">Select a quote that supports your point:</p>
-                                    <div className="space-y-2">
-                                        {quotes.map((quote, idx) => (
+                                    <p className="text-sm text-slate-600">Select evidence that supports your point:</p>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                        {availableEvidence.map((ev, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => handleSelectQuote(quote)}
-                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all text-sm
-                                                    ${peelData.evidence === quote
-                                                        ? 'bg-purple-50 border-purple-400 text-purple-700'
+                                                onClick={() => handleSelectQuote(ev.text)}
+                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all
+                                                    ${peelData.evidence === ev.text
+                                                        ? 'bg-purple-50 border-purple-400'
                                                         : 'bg-white border-slate-200 hover:border-purple-300'
                                                     }`}
                                             >
-                                                "{quote}"
+                                                <div className="flex items-start gap-2">
+                                                    <div className="flex-1">
+                                                        <p className={`text-sm font-medium ${peelData.evidence === ev.text ? 'text-purple-700' : 'text-slate-700'}`}>
+                                                            "{ev.text}"
+                                                        </p>
+                                                        {ev.explanation && (
+                                                            <p className={`text-xs mt-1.5 ${peelData.evidence === ev.text ? 'text-purple-600' : 'text-slate-500'}`}>
+                                                                Your analysis: {ev.explanation.substring(0, 80)}{ev.explanation.length > 80 ? '...' : ''}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {ev.source === 'guided' && (
+                                                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex-shrink-0">
+                                                            Guided
+                                                        </span>
+                                                    )}
+                                                    {ev.source === 'custom' && (
+                                                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full flex-shrink-0">
+                                                            Your find
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
@@ -469,20 +649,20 @@ const PeelBuilder = ({ quotes = [], accentColor = 'sky', level = 1, onComplete, 
                             )}
                         </div>
                     ) : (
-                        /* Other Steps - Text Input */
+                        /* Standard Text Input Steps */
                         <div className="space-y-3">
-                            {/* Sentence Starters (Level 1 only) */}
-                            {activityLevel === 1 && currentStepData.starters.length > 0 && (
+                            {/* Contextual Sentence Starters */}
+                            {activityLevel === 1 && activeStarters && activeStarters.length > 0 && (
                                 <div className="space-y-2">
                                     <p className="text-xs text-slate-500">Try starting with:</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {currentStepData.starters.map((starter, idx) => (
+                                        {activeStarters.map((starter, idx) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => handleStarterClick(starter)}
                                                 className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
                                             >
-                                                {starter.substring(0, 25)}...
+                                                {starter.substring(0, 30)}...
                                             </button>
                                         ))}
                                     </div>

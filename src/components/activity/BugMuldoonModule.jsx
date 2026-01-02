@@ -5,10 +5,37 @@ import SentenceBuilder from './SentenceBuilder';
 import PeelBuilder from './PeelBuilder';
 import SentenceExpander from './SentenceExpander';
 import HighlightModal from './HighlightModal';
+import GuidedReadingPanel from './GuidedReadingPanel';
 import AiAssistant from '../AiAssistant';
 import InstructionBar from '../InstructionBar';
 import { useProgress } from '../../context/ProgressContext';
 import { PenTool, Move, Highlighter, Layers, Maximize2, User, MapPin, Sparkles, Lightbulb, Swords, Check, Search, BookOpen, ArrowRight } from 'lucide-react';
+
+// Guided reading passages with hints
+const GUIDED_PASSAGES = [
+    {
+        id: 'passage-1',
+        text: "Come in and grab a seat. Not on the flypaper.",
+        hint: "How does this line mix danger with everyday bug life?"
+    },
+    {
+        id: 'passage-2',
+        text: "He was a bluebottle, and he looked jittery.",
+        hint: "What detective story tropes does this use?"
+    },
+    {
+        id: 'passage-3',
+        text: "The Garden was a dangerous place, especially for a guy like Eddie.",
+        hint: "How is 'The Garden' treated like a noir city?"
+    },
+    {
+        id: 'passage-4',
+        text: "Two sugar cubes a day, plus expenses.",
+        hint: "What's funny about this payment method?"
+    }
+];
+
+const INQUIRY_QUESTION = "How does mixing serious detective language with a garden setting create humor?";
 
 const CATEGORY_CONFIG = {
     character: { label: 'Character', color: 'blue', icon: User },
@@ -26,7 +53,7 @@ const INSTRUCTIONS = {
         tip: "Read the words first. Think about what makes sense!"
     },
     reading: {
-        instruction: "Find clues in the story! Highlight important words or phrases.",
+        instruction: "Find evidence in the story! Highlight important words or phrases.",
         tip: "Click and drag to select text on the left side."
     },
     peel: {
@@ -39,11 +66,63 @@ const INSTRUCTIONS = {
     }
 };
 
+// Glossary definitions for bilingual support
+const GLOSSARY_TERMS = [
+    { term: "flypaper", definition: "Sticky paper hanging from the ceiling to catch flies." },
+    { term: "bluebottle", definition: "A big, loud fly with a shiny blue body." },
+    { term: "jittery", definition: "Very nervous, shaking, or unable to sit still." },
+    { term: "compost heap", definition: "A pile of rotting plants and leaves in a garden." },
+    { term: "expenses", definition: "Money you spend to do a job that you get paid back later." },
+    { term: "steep", definition: "Expensive; costing a lot of sugar cubes!" },
+    { term: "private investigator", definition: "A detective who works on their own, not for the police." },
+    { term: "contact", definition: "A person who knows secret information." }
+];
+
+const WRITING_PROMPTS = [
+    {
+        id: 'atmosphere',
+        label: 'Analyze the Atmosphere',
+        question: "How does the author make the garden feel like a dangerous city?",
+        thesisBuilder: {
+            template: "The author uses {technique} to create a {mood} atmosphere.",
+            options: {
+                technique: ["dark imagery", "tense dialogue", "mystery"],
+                mood: ["suspenseful", "dangerous", "gloomy"]
+            }
+        },
+        starters: {
+            point: ["The author establishes a dangerous atmosphere by...", "The setting plays a key role in..."],
+            evidence: ["For example, the text states...", "We see this when..."],
+            explanation: ["This word suggests...", "This imagery creates a feeling of..."],
+            link: ["Therefore, the setting...", "This effectively creates..."]
+        }
+    },
+    {
+        id: 'character',
+        label: 'Analyze the Character',
+        question: "How do we know the fly is nervous?",
+        thesisBuilder: {
+            template: "By describing the fly's {behavior}, the text reveals his {emotion}.",
+            options: {
+                behavior: ["shaking legs", "jittery movements", "stuttering voice"],
+                emotion: ["intense fear", "nervousness", "panic"]
+            }
+        },
+        starters: {
+            point: ["The author shows the fly's nervousness through...", "The character's actions reveal..."],
+            evidence: ["The text describes...", "For instance, it says..."],
+            explanation: ["This action shows...", "The word 'jittery' implies..."],
+            link: ["This helps the reader understand...", "In conclusion, the fly..."]
+        }
+    }
+];
+
 const BugMuldoonModule = ({ onBack, userName }) => {
     const { markTabComplete, setLastTab, isTabComplete, getNextIncompleteTab } = useProgress();
     const [activeTab, setActiveTab] = useState('scramble');
     const [isAiOpen, setIsAiOpen] = useState(false);
-    const [highlights, setHighlights] = useState([]);
+    const [highlights, setHighlights] = useState([]); // For optional custom highlights
+    const [annotations, setAnnotations] = useState([]); // For guided passage analysis
     const [activityLevel, setActivityLevel] = useState(1);
     
     // New state for reading focus
@@ -60,9 +139,12 @@ const BugMuldoonModule = ({ onBack, userName }) => {
     const [showHighlightModal, setShowHighlightModal] = useState(false);
     const [pendingHighlight, setPendingHighlight] = useState(null);
 
+    // State to hold pre-selected prompt from Evidence Preview
+    const [preSelectedPrompt, setPreSelectedPrompt] = useState(null);
+
     const tabs = [
         { id: 'scramble', label: 'Build Sentence', shortLabel: '1', icon: Move },
-        { id: 'reading', label: 'Find Clues', shortLabel: '2', icon: Highlighter },
+        { id: 'reading', label: 'Find Evidence', shortLabel: '2', icon: Highlighter },
         { id: 'peel', label: 'Write Paragraph', shortLabel: '3', icon: Layers },
         { id: 'expand', label: 'Add Details', shortLabel: '4', icon: Maximize2 }
     ];
@@ -155,11 +237,49 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
         setHighlights(prev => prev.filter(h => h.text !== highlight.text));
     };
 
+    // Handle guided passage annotation
+    const handleAnnotate = (annotationData) => {
+        setAnnotations(prev => {
+            const exists = prev.find(a => a.passageId === annotationData.passageId);
+            if (exists) {
+                return prev.map(a => a.passageId === annotationData.passageId ? annotationData : a);
+            }
+            return [...prev, annotationData];
+        });
+    };
+
+    // Remove annotation
+    const handleRemoveAnnotation = (passageId) => {
+        setAnnotations(prev => prev.filter(a => a.passageId !== passageId));
+    };
+
+    // Handle when student selects prompt from Evidence Preview and continues
+    const handleSelectPromptAndContinue = (selectedPrompt, evidence) => {
+        setPreSelectedPrompt(selectedPrompt);
+        handleTabComplete('reading');
+        advanceToNextTab('reading');
+    };
+
+    // Get all evidence for PEEL (annotations + custom highlights)
+    const getAllEvidence = () => {
+        const guidedEvidence = annotations.map(a => ({
+            text: a.text,
+            explanation: a.explanation,
+            source: 'guided'
+        }));
+        const customEvidence = highlights.map(h => ({
+            text: h.text,
+            explanation: h.explanation || '',
+            source: 'custom'
+        }));
+        return [...guidedEvidence, ...customEvidence];
+    };
+
     // Get activity label for AI context (using kid-friendly labels)
     const getActivityLabel = () => {
         switch (activeTab) {
             case 'scramble': return 'Build the Sentence';
-            case 'reading': return 'Find the Clues';
+            case 'reading': return 'Find Evidence';
             case 'peel': return 'Write Your Paragraph';
             case 'expand': return 'Add Details';
             default: return 'Reading Activity';
@@ -230,13 +350,14 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                         chapter="Chapter 1: The Case of the Missing Earwig"
                         content={chapterContent.trim()}
                         highlights={highlights}
+                        glossary={GLOSSARY_TERMS}
                         onHighlight={activeTab === 'reading' ? handleHighlight : undefined}
                         onHighlightClick={handleHighlightClick}
                     />
                 }
                 rightPanel={
                     !hasStarted ? renderWelcomeScreen() : (
-                    <div className="flex flex-col h-full gap-6 overflow-y-auto p-6">
+                    <div className="flex flex-col h-full gap-4">
                         {/* Tab Switcher with Step Numbers */}
                         <div className="flex p-1 bg-slate-100 rounded-xl flex-shrink-0">
                             {tabs.map((tab, index) => {
@@ -291,73 +412,36 @@ I leaned back in my chair. The Garden was a dangerous place, especially for a gu
                                 </>
                             )}
 
-                            {/* Close Reading */}
+                            {/* Close Reading - Guided */}
                             {activeTab === 'reading' && (
-                                <div className="space-y-6 flex flex-col h-full">
-                                    <InstructionBar
-                                        instruction={INSTRUCTIONS.reading.instruction}
-                                        tip={INSTRUCTIONS.reading.tip}
+                                <div className="flex flex-col h-full">
+                                    <GuidedReadingPanel
+                                        passages={GUIDED_PASSAGES}
+                                        annotations={annotations}
+                                        onAnnotate={handleAnnotate}
+                                        onRemoveAnnotation={handleRemoveAnnotation}
+                                        inquiryQuestion={INQUIRY_QUESTION}
                                         accentColor="emerald"
+                                        customHighlights={highlights}
+                                        onEnableHighlighting={() => setIsTextCollapsed(false)}
+                                        minRequired={3}
+                                        writingPrompts={WRITING_PROMPTS}
+                                        onSelectPromptAndContinue={handleSelectPromptAndContinue}
                                     />
-
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex-1">
-                                        <h4 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
-                                            <PenTool className="w-4 h-4" /> Your Evidence
-                                        </h4>
-                                        {highlights.length === 0 ? (
-                                            <p className="text-sm text-yellow-600 italic">Select text in the left panel to highlight it.</p>
-                                        ) : (
-                                            <ul className="space-y-3">
-                                                {highlights.map((h, i) => {
-                                                    const config = CATEGORY_CONFIG[h.category] || { color: 'slate', label: 'Note' };
-                                                    return (
-                                                        <li key={i} className="bg-white p-3 rounded-lg border border-yellow-100 space-y-2">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <span className="text-sm text-slate-700 font-medium">"{h.text}"</span>
-                                                                <span className={`text-xs px-2 py-0.5 rounded-full bg-${config.color}-100 text-${config.color}-700`}>
-                                                                    {config.label}
-                                                                </span>
-                                                            </div>
-                                                            {h.explanation && (
-                                                                <p className="text-xs text-slate-500 italic">{h.explanation}</p>
-                                                            )}
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">  
-                                        <p className="text-sm text-green-800">
-                                            <strong>Inquiry Focus:</strong> How does the juxtaposition of a serious detective voice with a garden setting create humor?
-                                        </p>
-                                    </div>
-
-                                    <button
-                                        onClick={() => {
-                                            handleTabComplete('reading');
-                                            advanceToNextTab('reading');
-                                        }}
-                                        className="w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors shadow-sm"
-                                    >
-                                        Complete Investigation & Continue
-                                    </button>
                                 </div>
                             )}
 
                             {/* PEEL Writing */}
                             {activeTab === 'peel' && (
                                 <PeelBuilder
-                                    quotes={peelQuotes}
+                                    evidence={getAllEvidence()}
+                                    writingPrompts={WRITING_PROMPTS}
+                                    preSelectedPrompt={preSelectedPrompt}
                                     accentColor="green"
                                     level={activityLevel}
                                     onComplete={(paragraph) => {
                                         console.log('PEEL complete:', paragraph);
                                         handleTabComplete('peel');
-                                        // PEEL Builder has its own completion screen, so we might not auto-advance immediately,
-                                        // or we let the user click "Next Activity" if we added one there.
-                                        // For now, tracking completion is good.
                                     }}
                                     onRequestAiFeedback={(text) => {
                                         setIsAiOpen(true);

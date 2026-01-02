@@ -50,7 +50,7 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
     const percentage = getBookPercentage(bookId);
     const showStartHere = isFirstBook && !hasAnyProgress;
     const videoRef = useRef(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
 
     // Gradient overlays based on genre for text readability
     const overlays = {
@@ -109,6 +109,7 @@ const BookCard = ({ title, author, video, onClick, delay, variant, bookId, isFir
                         ref={videoRef}
                         src={video}
                         playsInline
+                        autoPlay
                         muted
                         loop
                         preload="auto"

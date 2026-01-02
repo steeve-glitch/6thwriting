@@ -480,6 +480,22 @@ const SentenceExpander = ({
                                         </p>
                                     </div>
                                 )}
+
+                                {/* Critical Thinking Reflection */}
+                                <div className="mt-4 bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Lightbulb className="w-5 h-5 text-amber-600" />
+                                        <p className="text-sm font-bold text-amber-800">Critical Thinking</p>
+                                    </div>
+                                    <p className="text-sm text-slate-700 mb-3">
+                                        Compare your sentence with the author's. Which one creates a clearer picture in your mind?
+                                    </p>
+                                    
+                                    <textarea
+                                        placeholder="I think the author's version is more tense because..."
+                                        className="w-full h-24 p-3 text-sm bg-white border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                                    />
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
