@@ -1,0 +1,13 @@
+# Static-assets Worker, no backend - moved here from Vercel on 2026-10-30.
+name = "sixth-writing"
+compatibility_date = "2026-10-30"
+workers_dev = true
+
+[assets]
+directory = "./dist"
+# A single-page app: any path that isn't a file gets index.html.
+not_found_handling = "single-page-application"
+
+[[routes]]
+pattern = "6thwriting.mrbell.app"
+custom_domain = true
